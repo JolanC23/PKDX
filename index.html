@@ -19,8 +19,10 @@
   --line: #d9dfe7;
   --red: #d93a2b;
   --red-text: #b52a1d;
-  --mask: #2c3a52;
+  --mask: #2a2e35;
   --mask-fg: #c9d3e2;
+  --t1: #7d8593; --t2: #b9bfc9; --t3: #ffffff; --t4: #ffc94a;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
   --found: #ffe27a;
   --h1: #9aa7ba;
   --h2: #d9a441;
@@ -37,14 +39,14 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --page: #0f141c; --card: #171e29; --ink: #e6ebf2; --ink-2: #aab5c4; --muted: #8592a4; --line: #283244;
-    --red: #e5503f; --red-text: #ff8a7a; --mask: #3a4a66; --mask-fg: #9fb0c9; --found: #6b5a12;
+    --red: #e5503f; --red-text: #ff8a7a; --mask: #343a45; --mask-fg: #9fb0c9; --found: #6b5a12;
     --h1: #5e6b80; --h2: #9c7425; --h3: #b2561c; --h4: #c23a2b;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
   --page: #0f141c; --card: #171e29; --ink: #e6ebf2; --ink-2: #aab5c4; --muted: #8592a4; --line: #283244;
-  --red: #e5503f; --red-text: #ff8a7a; --mask: #3a4a66; --mask-fg: #9fb0c9; --found: #6b5a12;
+  --red: #e5503f; --red-text: #ff8a7a; --mask: #343a45; --mask-fg: #9fb0c9; --found: #6b5a12;
   --h1: #5e6b80; --h2: #9c7425; --h3: #b2561c; --h4: #c23a2b;
 }
 *, *::before, *::after { box-sizing: inherit; }
@@ -117,13 +119,16 @@ main { max-width: 1160px; margin: 0 auto; padding: 18px 20px 40px; display: grid
 .doc h2 { font-family: var(--sans); font-size: 2rem; line-height: 1.5; margin: 0 0 14px; font-weight: 800; letter-spacing: -0.01em; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 .doc p { margin: 0 0 14px; }
 .wd { border-radius: 4px; }
-.m { display: inline-block; position: relative; vertical-align: baseline; background: var(--mask); color: transparent; border-radius: 4px; line-height: 1.3; padding: 0 3px; font: inherit; cursor: pointer; user-select: none; white-space: nowrap; }
-.m.near { color: var(--near-fg); text-align: center; }
-.m .t { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.m .len { z-index: 2; }
-.m.asia { cursor: default; opacity: 0.6; }
-.m.h1 { background: var(--h1); } .m.h2 { background: var(--h2); } .m.h3 { background: var(--h3); } .m.h4 { background: var(--h4); }
-.m .len { position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%); background: var(--ink); color: var(--card); font-family: var(--sans); font-size: 0.75rem; line-height: 1.3; padding: 2px 6px; border-radius: 5px; white-space: nowrap; pointer-events: none; }
+.m { display: inline-flex; align-items: center; justify-content: center; position: relative; vertical-align: middle; height: 1.3em; margin: 0.12em 0; padding: 0 4px; background: var(--mask); border-radius: 3px; cursor: pointer; user-select: none; white-space: nowrap; box-sizing: border-box; }
+.m .t { font-family: var(--mono); font-size: 0.72em; font-weight: 600; line-height: 1; letter-spacing: 0.01em; color: transparent; overflow: hidden; white-space: nowrap; }
+.m.near .t { color: var(--t1); }
+.m.near.h2 .t { color: var(--t2); }
+.m.near.h3 .t { color: var(--t3); }
+.m.near.h4 .t { color: var(--t4); }
+.doc h2 .m { height: 1.15em; border-radius: 5px; }
+.doc h2 .m .t { font-size: 0.55em; }
+.m.asia { cursor: default; opacity: 0.55; }
+.m .len { z-index: 2; position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%); background: var(--ink); color: var(--card); font-family: var(--sans); font-size: 0.75rem; line-height: 1.3; padding: 2px 6px; border-radius: 5px; white-space: nowrap; pointer-events: none; }
 .f-new { background: var(--found); transition: background-color 1.6s ease; }
 .shown { color: var(--muted); }
 .doc-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px; font-size: 0.9rem; color: var(--muted); }
@@ -149,7 +154,7 @@ dialog::backdrop { background: rgba(10, 14, 20, 0.5); }
 .dlg-b ul { padding-left: 1.2em; margin: 6px 0; }
 .dlg-b a { color: var(--red-text); }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
-.chip { font-size: 0.82rem; border-radius: 6px; padding: 1px 8px; color: #fff; }
+.chip { font-family: var(--mono); font-size: 0.8rem; font-weight: 600; border-radius: 3px; padding: 2px 9px; background: var(--mask); }
 .gate { position: fixed; inset: 0; z-index: 50; background: var(--page); display: flex; align-items: center; justify-content: center; padding: 20px; }
 .gate[hidden] { display: none; }
 .gate-box { background: var(--card); border: 1px solid var(--line); border-top: 4px solid var(--red); border-radius: 14px; padding: 22px; width: min(360px, 100%); }
@@ -850,7 +855,7 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     return PERM[cyc][pos];
   }
 
-  var S = { today: TX.dayNumber(new Date()), n: 0, game: null, saved: null, ended: false, lastFound: new Set(), lastG: null, sort: "recent", openLen: null, pool: null, token: 0 };
+  var S = { today: TX.dayNumber(new Date()), n: 0, game: null, saved: null, ended: false, lastFound: new Set(), lastG: null, sort: "recent", openLen: null, showAll: false, pool: null, token: 0 };
 
   /* ---------- Poképédia en direct ---------- */
   function api(params) {
@@ -954,15 +959,15 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     S.lastFound = new Set(); S.lastG = null; S.openLen = null;
     S.saved.guesses.forEach(function (w) { var r = S.game.propose(w); if (r.status === "ok") S.lastG = r.g; });
     S.ended = S.game.won || S.saved.ab;
-    if (S.saved.ab) S.game.revealAll();
+    S.showAll = S.saved.show !== undefined ? !!S.saved.show : !!S.saved.ab;
     $("q").value = "";
     setFb(S.ended ? "" : (S.game.guesses.length ? "" : "Astuce : commencez par des petits mots (« le », « de », « est »), puis des mots de l’univers Pokémon (« type », « génération », « capacité »)."));
-    $("q").disabled = S.ended; $("go").disabled = S.ended; $("bGive").hidden = S.ended;
+    $("q").disabled = false; $("go").disabled = false; $("bGive").hidden = S.ended;
     renderAll();
-    if (!S.ended && window.matchMedia("(pointer: fine)").matches) $("q").focus({ preventScroll: true });
+    if (window.matchMedia("(pointer: fine)").matches) $("q").focus({ preventScroll: true });
   }
   function save() {
-    S.saved.won = S.game.won; S.saved.wonAt = S.game.wonAt; S.saved.n = S.game.count();
+    S.saved.won = S.game.won && !S.saved.ab; S.saved.wonAt = S.game.wonAt; S.saved.n = S.game.count();
     writeLS("p." + S.n, S.saved);
   }
   function setFb(html) { $("fb").innerHTML = html; }
@@ -976,11 +981,11 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
   }
 
   function wordHTML(w) {
-    if (w.found || w.shown) {
-      var cls = "wd" + (S.lastFound.has(w.i) ? " f-new" : "") + (w.shown && !w.found ? " shown" : "");
+    if (w.found || S.showAll) {
+      var cls = "wd" + (S.lastFound.has(w.i) ? " f-new" : "") + (!w.found ? " shown" : "");
       return '<span class="' + cls + '" data-i="' + w.i + '">' + esc(disp(w.s)) + "</span>";
     }
-    var width = (w.len * 0.62 + 0.3).toFixed(2) + "em";
+    var width = (w.len * 0.5 + 0.5).toFixed(2) + "em";
     var len = S.openLen === w.i ? '<span class="len">' + plural(w.len, "lettre", "lettres") + "</span>" : "";
     if (w.best && w.best.score >= 0.3) {
       var h = TX.heat(w.best.score);
@@ -992,7 +997,7 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
   var ASIA = /[\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uff66-\uff9f]+/g;
   function plainHTML(s) {
     var h = esc(disp(s));
-    if (S.ended) return h;
+    if (S.showAll) return h;
     return h.replace(ASIA, function (m) {
       return '<span class="m asia" style="width:' + (m.length * 0.9 + 0.3).toFixed(2) + 'em" aria-hidden="true"><span class="t">&#8203;</span></span>';
     });
@@ -1027,13 +1032,17 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     var g = S.game, el = $("end");
     if (!S.ended) { el.innerHTML = ""; return; }
     var p = g.puzzle, link = '<a href="' + esc(p.url) + '" target="_blank" rel="noopener">Lire « ' + esc(disp(p.title)) + " » sur Poképédia</a>";
-    if (g.won) {
-      el.innerHTML = '<div class="win"><h3>Trouvé : ' + esc(disp(p.title)) + "</h3><p>Vous avez trouvé la page n°" + S.n + " en " + plural(g.wonAt, "coup", "coups") + ".</p><p>" + link + '</p><div class="acts"><button type="button" id="bShare">Copier mon résultat</button><button type="button" id="bReveal">Révéler toute la page</button></div></div>';
+    var toggle = '<button type="button" id="bReveal">' + (S.showAll ? "Masquer la page" : "Révéler toute la page") + "</button>";
+    if (g.won && !S.saved.ab) {
+      el.innerHTML = '<div class="win"><h3>Trouvé : ' + esc(disp(p.title)) + "</h3><p>Vous avez trouvé la page n°" + S.n + " en " + plural(g.wonAt, "coup", "coups") + ". Vous pouvez continuer à proposer des mots pour dévoiler le reste.</p><p>" + link + '</p><div class="acts"><button type="button" id="bShare">Copier mon résultat</button>' + toggle + "</div></div>";
       $("bShare").onclick = share;
-      $("bReveal").onclick = function () { g.revealAll(); renderDoc(); this.remove(); };
     } else {
-      el.innerHTML = '<div class="win"><h3>C’était : ' + esc(disp(p.title)) + "</h3><p>Page révélée après " + plural(g.count(), "essai", "essais") + ". Une nouvelle page arrive chaque jour à midi.</p><p>" + link + "</p></div>";
+      el.innerHTML = '<div class="win"><h3>C’était : ' + esc(disp(p.title)) + "</h3><p>Page révélée après " + plural(g.count(), "essai", "essais") + ". Vous pouvez masquer la page et continuer à proposer des mots. Une nouvelle page arrive chaque jour à midi.</p><p>" + link + '</p><div class="acts">' + toggle + "</div></div>";
     }
+    $("bReveal").onclick = function () {
+      S.showAll = !S.showAll; S.saved.show = S.showAll; save(); S.lastFound = new Set(); S.openLen = null;
+      renderDoc(); this.textContent = S.showAll ? "Masquer la page" : "Révéler toute la page";
+    };
   }
   function share() {
     var g = S.game, f = g.words.filter(function (w) { return w.found; }).length;
@@ -1046,7 +1055,6 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
   /* Proposition */
   $("form").addEventListener("submit", function (ev) {
     ev.preventDefault();
-    if (S.ended) return;
     var v = $("q").value;
     if (!v.trim()) return;
     var words = v.trim().split(/\s+/);
@@ -1061,10 +1069,11 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     else if (r.already) setFb("« <b>" + esc(disp(r.g)) + "</b> » est déjà dévoilé.");
     else if ((e.best || 0) >= 0.3) setFb("« <b>" + esc(disp(r.g)) + "</b> » n’est pas dans la page, mais " + plural(e.nearCount, "mot s’en rapproche", "mots s’en rapprochent") + " (" + HEAT[TX.heat(e.best)] + ").");
     else setFb("« <b>" + esc(disp(r.g)) + "</b> » n’est pas dans la page.");
-    if (r.win) { S.ended = true; $("q").disabled = true; $("go").disabled = true; $("bGive").hidden = true; setFb("Bravo !"); }
+    var justWon = r.win && !S.saved.ab;
+    if (r.win) { S.ended = true; $("bGive").hidden = true; if (justWon) setFb("Bravo ! Vous pouvez continuer à proposer des mots."); }
     save();
     renderAll();
-    if (r.win) window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    if (justWon) window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   });
 
   $("doc").addEventListener("click", function (ev) {
@@ -1085,8 +1094,8 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
   $("bGive").addEventListener("click", function () {
     if (!confirm("Révéler la page et terminer la partie ?")) return;
     S.saved.ab = true; save();
-    S.ended = true; S.game.revealAll();
-    $("q").disabled = true; $("go").disabled = true; $("bGive").hidden = true; setFb("");
+    S.ended = true; S.showAll = true; S.saved.show = true; save();
+    $("bGive").hidden = true; setFb("");
     renderAll();
   });
 
@@ -1098,7 +1107,7 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     openDlg("Comment jouer", "<p>Chaque jour à midi, une page de Poképédia est cachée : Pokémon, attaque, talent, objet, lieu, personnage, jeu… Retrouvez son titre en proposant des mots, un à la fois.</p>" +
       "<ul><li>Si le mot est dans la page, il se dévoile partout où il apparaît (pluriels et conjugaisons compris).</li>" +
       "<li>Sinon, les mots cachés qui s’en rapprochent affichent votre proposition, avec une couleur selon la proximité :</li></ul>" +
-      '<div class="chips"><span class="chip" style="background:var(--h1)">froid</span><span class="chip" style="background:var(--h2)">tiède</span><span class="chip" style="background:var(--h3)">chaud</span><span class="chip" style="background:var(--h4)">brûlant</span></div>' +
+      '<div class="chips"><span class="chip" style="color:var(--t1)">froid</span><span class="chip" style="color:var(--t2)">tiède</span><span class="chip" style="color:var(--t3)">chaud</span><span class="chip" style="color:var(--t4)">brûlant</span></div>' +
       "<p>Touchez un mot caché pour voir son nombre de lettres. La partie est gagnée quand tous les mots du titre sont trouvés.</p>" +
       "<p>Votre progression reste enregistrée sur cet appareil.</p>");
   }

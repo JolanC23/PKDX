@@ -1,0 +1,1144 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pokédix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --page: #eef1f5;
+  --card: #ffffff;
+  --ink: #17202e;
+  --ink-2: #4b586b;
+  --muted: #6e7a8c;
+  --line: #d9dfe7;
+  --red: #d93a2b;
+  --red-text: #b52a1d;
+  --mask: #2c3a52;
+  --mask-fg: #c9d3e2;
+  --found: #ffe27a;
+  --h1: #9aa7ba;
+  --h2: #d9a441;
+  --h3: #e0702a;
+  --h4: #d93a2b;
+  --near-fg: #ffffff;
+  --sans: "Bricolage Grotesque", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --serif: "Literata", Georgia, "Times New Roman", serif;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0f141c; --card: #171e29; --ink: #e6ebf2; --ink-2: #aab5c4; --muted: #8592a4; --line: #283244;
+    --red: #e5503f; --red-text: #ff8a7a; --mask: #3a4a66; --mask-fg: #9fb0c9; --found: #6b5a12;
+    --h1: #5e6b80; --h2: #9c7425; --h3: #b2561c; --h4: #c23a2b;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0f141c; --card: #171e29; --ink: #e6ebf2; --ink-2: #aab5c4; --muted: #8592a4; --line: #283244;
+  --red: #e5503f; --red-text: #ff8a7a; --mask: #3a4a66; --mask-fg: #9fb0c9; --found: #6b5a12;
+  --h1: #5e6b80; --h2: #9c7425; --h3: #b2561c; --h4: #c23a2b;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 80px); -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--card); }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+
+/* En-tête */
+.top { background: var(--card); border-bottom: 3px solid var(--red); }
+.top-in { max-width: 1160px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.ball { width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--ink); position: relative; overflow: hidden;
+  background: linear-gradient(var(--red) 0 46%, var(--ink) 46% 56%, var(--card) 56%); flex: none; }
+.ball::after { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; transform: translate(-50%, -50%);
+  border-radius: 50%; background: var(--card); border: 3px solid var(--ink); }
+.brand h1 { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+.when { display: flex; flex-direction: column; line-height: 1.2; }
+.when strong { font-weight: 600; font-size: 0.95rem; }
+.when span { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.nav { margin-left: auto; display: flex; gap: 4px; }
+.nav button { background: none; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+.nav button:hover { border-color: var(--ink-2); }
+
+/* Mise en page */
+main { max-width: 1160px; margin: 0 auto; padding: 18px 20px 40px; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); padding: 12px 12px 32px; } .rail { order: -1; } }
+
+/* Saisie */
+.rail, main > section { min-width: 0; }
+.rail { position: sticky; top: env(safe-area-inset-top, 0px); display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 860px) { .rail { position: static; } .guess { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; } }
+.guess { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.guess form { display: flex; gap: 8px; }
+.guess input { flex: 1; min-width: 0; border: 2px solid var(--line); border-radius: 10px; padding: 9px 12px; background: var(--page); font-size: 1.05rem; }
+.guess input:focus { border-color: var(--red); outline: none; }
+.go { border: none; border-radius: 10px; background: var(--red); color: #fff; font-weight: 700; padding: 0 16px; cursor: pointer; }
+.go:disabled, .guess input:disabled { opacity: 0.5; cursor: default; }
+.fb { min-height: 1.4em; margin: 8px 2px 0; font-size: 0.92rem; color: var(--ink-2); }
+.fb b { color: var(--ink); }
+
+.hist-box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.hist-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.hist-h h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+.hist-h h2 span { color: var(--muted); font-weight: 400; margin-left: 6px; font-variant-numeric: tabular-nums; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: none; background: none; padding: 3px 9px; font-size: 0.82rem; cursor: pointer; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--card); }
+.hist { list-style: none; margin: 0; padding: 0; max-height: 52vh; overflow-y: auto; }
+@media (max-width: 860px) { .hist { max-height: 30vh; } }
+.hist li { display: grid; grid-template-columns: 2.4em 1fr auto; gap: 6px; align-items: center; padding: 4px 2px; border-top: 1px solid var(--line); font-size: 0.95rem; }
+.hist li:first-child { border-top: none; }
+.hist .n { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.hist .w { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist .r { font-variant-numeric: tabular-nums; font-size: 0.85rem; }
+.hist .r.hit { color: var(--ink); font-weight: 700; }
+.hist .r.miss { color: var(--muted); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; background: var(--line); }
+.dot.h1 { background: var(--h1); } .dot.h2 { background: var(--h2); } .dot.h3 { background: var(--h3); } .dot.h4 { background: var(--h4); }
+.hist li.last { background: color-mix(in srgb, var(--found) 45%, transparent); border-radius: 6px; }
+.empty { color: var(--muted); font-size: 0.9rem; margin: 4px 0; }
+
+/* Article */
+.doc-wrap { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px 26px 18px; }
+@media (max-width: 560px) { .doc-wrap { padding: 16px 14px; } }
+.kind[hidden] { display: none; }
+.kind { display: inline-block; font-size: 0.82rem; font-weight: 600; color: var(--red-text); border: 1px solid currentColor; border-radius: 999px; padding: 1px 10px; margin-bottom: 10px; }
+.doc { font-family: var(--serif); font-size: 1.06rem; line-height: 1.85; max-width: 72ch; }
+.doc h2 { font-family: var(--sans); font-size: 2rem; line-height: 1.5; margin: 0 0 14px; font-weight: 800; letter-spacing: -0.01em; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.doc p { margin: 0 0 14px; }
+.wd { border-radius: 4px; }
+.m { display: inline-block; background: var(--mask); color: transparent; border-radius: 4px; height: 1.15em; vertical-align: -0.18em; position: relative; cursor: pointer; user-select: none; }
+.doc h2 .m { height: 0.95em; vertical-align: -0.08em; }
+.m.near { color: var(--near-fg); font-family: var(--sans); font-size: 0.78em; line-height: 1.5em; height: 1.45em; vertical-align: 0.02em; text-align: center; overflow: hidden; white-space: nowrap; padding: 0 2px; }
+.doc h2 .m.near { font-size: 0.5em; line-height: 1.9em; height: 1.9em; vertical-align: 0.25em; }
+.m.h1 { background: var(--h1); } .m.h2 { background: var(--h2); } .m.h3 { background: var(--h3); } .m.h4 { background: var(--h4); }
+.m .len { position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%); background: var(--ink); color: var(--card); font-family: var(--sans); font-size: 0.75rem; line-height: 1.3; padding: 2px 6px; border-radius: 5px; white-space: nowrap; pointer-events: none; }
+.f-new { background: var(--found); transition: background-color 1.6s ease; }
+.shown { color: var(--muted); }
+.doc-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px; font-size: 0.9rem; color: var(--muted); }
+.ghost { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; color: var(--ink-2); font-size: 0.88rem; }
+.ghost:hover { border-color: var(--ink-2); color: var(--ink); }
+
+/* Fin de partie */
+.win { background: var(--card); border: 2px solid var(--red); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; }
+.win h3 { margin: 0 0 4px; font-size: 1.3rem; font-weight: 800; }
+.win p { margin: 4px 0; color: var(--ink-2); }
+.win a { color: var(--red-text); font-weight: 600; }
+.win .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.win .acts button { border: none; border-radius: 9px; background: var(--ink); color: var(--card); padding: 7px 14px; cursor: pointer; font-weight: 600; }
+
+/* Dialogue */
+dialog { border: 1px solid var(--line); border-radius: 14px; padding: 0; max-width: min(560px, 92vw); background: var(--card); color: var(--ink); }
+dialog::backdrop { background: rgba(10, 14, 20, 0.5); }
+.dlg-h { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px 0; }
+.dlg-h h2 { margin: 0; font-size: 1.2rem; }
+.dlg-h button { background: none; border: none; font-size: 1.5rem; cursor: pointer; line-height: 1; padding: 2px 6px; }
+.dlg-b { padding: 6px 18px 18px; font-size: 0.97rem; }
+.dlg-b p { margin: 8px 0; }
+.dlg-b ul { padding-left: 1.2em; margin: 6px 0; }
+.dlg-b a { color: var(--red-text); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.chip { font-size: 0.82rem; border-radius: 6px; padding: 1px 8px; color: #fff; }
+.gate { position: fixed; inset: 0; z-index: 50; background: var(--page); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.gate[hidden] { display: none; }
+.gate-box { background: var(--card); border: 1px solid var(--line); border-top: 4px solid var(--red); border-radius: 14px; padding: 22px; width: min(360px, 100%); }
+.gate-box h2 { margin: 0 0 4px; font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+.gate-box p { margin: 4px 0 14px; color: var(--ink-2); font-size: 0.95rem; }
+.gate-box form { display: flex; gap: 8px; }
+.gate-box input { flex: 1; min-width: 0; border: 2px solid var(--line); border-radius: 10px; padding: 9px 12px; background: var(--page); }
+.gate-box input:focus { border-color: var(--red); outline: none; }
+.gate-msg { min-height: 1.3em; color: var(--red-text); font-size: 0.9rem; margin: 8px 0 0 !important; }
+footer { max-width: 1160px; margin: 0 auto; padding: 0 20px 28px; color: var(--muted); font-size: 0.82rem; }
+footer a { color: inherit; }
+@media (prefers-reduced-motion: reduce) { .f-new { transition: none; } }
+</style>
+</head>
+<body>
+<div class="gate" id="gate" hidden>
+  <div class="gate-box">
+    <h2><span class="ball" aria-hidden="true"></span>Pokédix</h2>
+    <p>Ce jeu est réservé aux invités. Entrez le mot de passe pour jouer.</p>
+    <form id="gateForm" autocomplete="off">
+      <input id="gateIn" type="password" placeholder="Mot de passe" aria-label="Mot de passe">
+      <button class="go" type="submit">Entrer</button>
+    </form>
+    <p class="gate-msg" id="gateMsg" aria-live="polite"></p>
+  </div>
+</div>
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><span class="ball" aria-hidden="true"></span><h1>Pokédix</h1></div>
+    <div class="when"><strong id="num">Page n°1</strong><span id="next"></span></div>
+    <nav class="nav" aria-label="Aide">
+      <button type="button" id="bRules">Règles</button>
+      <button type="button" id="bPast">Pages passées</button>
+    </nav>
+  </div>
+</header>
+<main>
+  <section aria-label="Page mystère">
+    <div id="end"></div>
+    <div class="doc-wrap">
+      <span class="kind" id="kind" hidden></span>
+      <article class="doc" id="doc"></article>
+      <div class="doc-foot">
+        <span id="prog"></span>
+        <button type="button" class="ghost" id="bGive">Abandonner et révéler la page</button>
+      </div>
+    </div>
+  </section>
+  <aside class="rail">
+    <div class="guess">
+      <form id="form" autocomplete="off">
+        <label for="q" class="sr" style="position:absolute;left:-9999px">Proposer un mot</label>
+        <input id="q" type="text" placeholder="Proposer un mot" autocapitalize="off" spellcheck="false" enterkeyhint="send">
+        <button class="go" id="go" type="submit">Essayer</button>
+      </form>
+      <p class="fb" id="fb" aria-live="polite"></p>
+    </div>
+    <div class="hist-box">
+      <div class="hist-h">
+        <h2>Essais<span id="cnt">0</span></h2>
+        <div class="seg" role="group" aria-label="Trier les essais">
+          <button type="button" data-sort="recent" aria-pressed="true">Récents</button>
+          <button type="button" data-sort="near" aria-pressed="false">Proches</button>
+        </div>
+      </div>
+      <ol class="hist" id="hist"></ol>
+    </div>
+  </aside>
+</main>
+<footer>Textes extraits et adaptés de <a href="https://www.pokepedia.fr/" target="_blank" rel="noopener">Poképédia</a>, sous licence CC BY-NC-SA 3.0. Jeu non officiel, inspiré de Pédantix. Pokémon est une marque de Nintendo, Creatures et Game Freak.</footer>
+<dialog id="dlg"><div class="dlg-h"><h2 id="dlgT"></h2><button type="button" id="dlgX" aria-label="Fermer">×</button></div><div class="dlg-b" id="dlgB"></div></dialog>
+<script>
+/* PokéPédantix — moteur du jeu (logique pure, testable sous Node) */
+var TX = (function () {
+  "use strict";
+
+  /* ---------- Normalisation ---------- */
+  var LETTER = /[A-Za-zÀ-ÖØ-öø-ÿŒœÆæ0-9]/;
+  var ELIDABLE = new Set(["l", "d", "n", "s", "c", "j", "m", "t", "qu", "jusqu", "lorsqu", "puisqu", "quoiqu", "presqu"]);
+  var COMPOUND_APOS = new Set(["aujourd'hui", "prud'homme", "presqu'île", "cramois'île"]);
+  var ALIAS = {};
+
+  function low(s) { return String(s).toLowerCase().replace(/[’`´]/g, "'"); }
+  function stripAcc(s) {
+    return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/œ/g, "oe").replace(/æ/g, "ae");
+  }
+  function isNum(s) { return /^\d+$/.test(s); }
+
+  /* ---------- Découpage du texte ---------- */
+  function tokenize(text) {
+    var out = [], i = 0, n = text.length;
+    while (i < n) {
+      var ch = text[i];
+      if (LETTER.test(ch)) {
+        var j = i;
+        while (j < n && (LETTER.test(text[j]) || (text[j] === "&" && j + 1 < n && LETTER.test(text[j + 1]) && j > i))) j++;
+        var word = text.slice(i, j);
+        if (j < n && (text[j] === "'" || text[j] === "’")) {
+          var k = j + 1;
+          while (k < n && LETTER.test(text[k])) k++;
+          var tail = text.slice(j + 1, k);
+          if (tail && COMPOUND_APOS.has(low(word + "'" + tail))) { word = text.slice(i, k); j = k; }
+          else if (ELIDABLE.has(low(word))) { word = text.slice(i, j + 1); j = j + 1; }
+        }
+        out.push({ w: true, s: word });
+        i = j;
+      } else {
+        var m = i;
+        while (m < n && !LETTER.test(text[m])) m++;
+        out.push({ w: false, s: text.slice(i, m) });
+        i = m;
+      }
+    }
+    return out;
+  }
+
+  /* ---------- Mots-outils (jamais regroupés entre eux) ---------- */
+  var FUNC = new Set(("le la les l' un une des du de d' et ou où à au aux en dans par pour sur sous avec sans chez vers " +
+    "entre contre selon depuis pendant durant avant après dès jusqu' jusque lors lorsque lorsqu' quand comme si ainsi aussi " +
+    "alors donc mais or ni car puis ce cet cette ces c' ceci cela ça se s' sa son ses notre nos votre vos mon ma mes ton ta tes " +
+    "il ils elle elles on nous vous je j' tu me m' te t' lui y ne n' pas plus moins très qui que qu' quoi dont chaque " +
+    "non oui déjà encore toujours jamais souvent parfois bien peu trop beaucoup tant autant afin grâce parmi via là ici etc " +
+    "puisqu' quoiqu' presqu' tandis cependant pourtant enfin ensuite également notamment surtout seulement simplement").split(" "));
+
+  /* Formes irrégulières ou à garder distinctes (nom ≠ verbe) */
+  var IRREG = {};
+  function addIrreg(str) {
+    str.split(";").forEach(function (grp) {
+      grp = grp.trim(); if (!grp) return;
+      var p = grp.split(":"), lemma = p[0].trim();
+      p[1].trim().split(/\s+/).forEach(function (f) { IRREG[f] = lemma; });
+      IRREG[lemma] = lemma;
+    });
+  }
+  addIrreg("nouveau: nouvelle nouvelles nouvel nouveaux; beau: belle belles bel beaux; vieux: vieille vieilles vieil;" +
+    "tout: tous toute toutes; quel: quelle quels quelles; même: mêmes; autre: autres; leur: leurs; certain: certaine certains certaines;" +
+    "aucun: aucune aucuns aucunes; tel: telle tels telles; plusieurs: plusieurs; entreprise: entreprises; produit: produits;" +
+    "contenant: contenants; contenu: contenus; compromis: compromis; devant: devant; matériau: matériaux; métal: métaux;" +
+    "international: internationale internationales internationaux; principal: principale principales principaux;" +
+    "environnemental: environnementale environnementales environnementaux; normal: normale normales normaux;" +
+    "partie: parties; marque: marques; spécial: spéciale spéciales spéciaux; social: sociale sociales sociaux; global: globale globales globaux;" +
+    "fondamental: fondamentale fondamentales fondamentaux; mondial: mondiale mondiales mondiaux; local: locale locales locaux;" +
+    "travail: travaux; animal: animaux; idéal: idéale idéales idéaux; vertical: verticale verticales verticaux;" +
+    "familial: familiale familiales familiaux; industriel: industrielle industrielles industriels; essentiel: essentielle essentielles essentiels;" +
+    "naturel: naturelle naturelles naturels; individuel: individuelle individuelles individuels; potentiel: potentielle potentielles potentiels;" +
+    "frais: fraîche fraîches; doux: douce douces; long: longue longues longs; public: publique publiques publics;" +
+    "fin: fine fines fins; pur: pure pures purs; sûr: sûre sûres sûrs; dur: dure dures durs; nu: nue nues nus; mat: mate mats mates;" +
+    "bon: bonne bonnes bons; gros: grosse grosses; bas: basse basses; épais: épaisse épaisses; suivant: suivante suivantes suivants; mesure: mesures; usage: usages; service: services; recherche: recherches");
+
+  /* ---------- Conjugaison (formes -> infinitif) ---------- */
+  var VERB = {};
+  function put(forms, lemma) { forms.forEach(function (f) { if (f && !(f in VERB)) VERB[f] = lemma; }); }
+
+  function conjER(inf) {
+    var st = inf.slice(0, -2), soft = st, forms = [];
+    var last = st.slice(-1);
+    if (last === "c") soft = st.slice(0, -1) + "ç";
+    if (last === "g") soft = st + "e";
+    var stE = st; // radical devant e muet
+    var mAcc = st.match(/^(.*)é([^aeiouyéèêàâîïôûù]+)$/);
+    var mE = st.match(/^(.*)e([^aeiouyéèêàâîïôûù])$/);
+    if (mAcc) stE = mAcc[1] + "è" + mAcc[2];
+    else if (mE && !/[aeiou]$/.test(mE[1])) stE = mE[1] + "è" + mE[2];
+    if (/[aou]y$/.test(st)) stE = st.slice(0, -1) + "i";
+    var A = function (e) { return (/^[ao]/.test(e) ? soft : st) + e; };
+    ["e", "es", "ent"].forEach(function (e) { forms.push(stE + e, st + e); });
+    ["ons"].forEach(function (e) { forms.push(A(e)); });
+    ["ez", "er", "é", "ée", "és", "ées", "èrent", "ions", "iez"].forEach(function (e) { forms.push(st + e); });
+    ["ais", "ait", "aient", "ant", "a", "as", "ai", "âmes", "âtes", "asse", "assent"].forEach(function (e) { forms.push(A(e)); });
+    ["erai", "eras", "era", "erons", "erez", "eront", "erais", "erait", "erions", "eriez", "eraient"].forEach(function (e) {
+      forms.push(st + e, stE + e);
+    });
+    put(forms, inf);
+  }
+  function conjIR(inf) {
+    var st = inf.slice(0, -2);
+    put(["ir", "is", "it", "issons", "issez", "issent", "issais", "issait", "issions", "issiez", "issaient", "irai", "iras", "ira",
+      "irons", "irez", "iront", "irais", "irait", "irions", "iriez", "iraient", "irent", "isse", "isses", "issant", "i", "ie", "ies"]
+      .map(function (e) { return st + e; }), inf);
+  }
+  function conjRE(inf) {
+    var st = inf.slice(0, -2);
+    put(["re", "s", "", "ons", "ez", "ent", "ais", "ait", "ions", "iez", "aient", "rai", "ras", "ra", "rons", "rez", "ront", "rais",
+      "rait", "raient", "it", "irent", "u", "ue", "us", "ues", "ant", "e", "es"].map(function (e) { return st + e; }), inf);
+  }
+  function irr(spec) {
+    spec.split(";").forEach(function (g) {
+      g = g.trim(); if (!g) return;
+      var p = g.split(":"); var inf = p[0].trim();
+      put([inf].concat(p[1].trim().split(/\s+/)), inf);
+    });
+  }
+  function family(prefixes, base, endings) {
+    prefixes.split(" ").forEach(function (pre) {
+      var inf = pre + base;
+      put(endings.split(" ").map(function (e) { return pre + e; }).concat([inf]), inf);
+    });
+  }
+
+  irr("être: suis es est sommes êtes sont étais était étions étiez étaient serai seras sera serons serez seront serais serait serions seriez seraient fus fut furent sois soit soyons soyez soient été étant;" +
+    "avoir: ai as a avons avez ont avais avait avions aviez avaient aurai auras aura aurons aurez auront aurais aurait aurions auriez auraient eut eurent aie aies ait ayons ayez aient eu eue eues ayant;" +
+    "faire: fais fait faisons faites font faisais faisait faisions faisiez faisaient ferai feras fera ferons ferez feront ferais ferait ferions feriez feraient fis fit firent fasse fasses fassions fassiez fassent faits faite faisant;" +
+    "pouvoir: peux peut pouvons pouvez peuvent pouvais pouvait pouvions pouviez pouvaient pourrai pourras pourra pourrons pourrez pourront pourrais pourrait pourrions pourriez pourraient purent puisse puisses puissions puissiez puissent pu pouvant;" +
+    "devoir: dois doit devons devez doivent devais devait devions deviez devaient devrai devras devra devrons devrez devront devrais devrait devrions devriez devraient dut durent doive doives dû due dues;" +
+    "vouloir: veux veut voulons voulez veulent voulais voulait voudrai voudra voudrons voudront voudrais voudrait voudraient voulu voulue voulant veuille;" +
+    "savoir: sais sait savons savez savent savais savait saurai saura saurons sauront saurait su sue sachant sache sachent;" +
+    "valoir: vaux vaut valons valez valent valait valaient vaudra vaudrait valu valant;" +
+    "falloir: faut fallait faudra faudrait fallu;" +
+    "aller: vais vas va allons allez vont allais allait allaient irai ira irons iront irait iraient allé allée allés allées allant aille aillent;" +
+    "dire: dis dit disons dites disent disait disaient dira dirait dite dits disant;" +
+    "voir: vois voit voyons voyez voient voyait verra verrait vu vue vus vues voyant;" +
+    "prévoir: prévois prévoit prévoyons prévoient prévoyait prévoira prévu prévue prévus prévues prévoyant;" +
+    "naître: nais naît naissons naissent naissait naquit né née nés nées naissant;" +
+    "croître: croîs croît croissons croissent croissait croîtra crû crue croissant croissante croissantes croissants;" +
+    "suivre: suit suivons suivez suivent suivait suivra suivi suivie suivis suivies;" +
+    "vivre: vis vit vivons vivez vivent vivait vivra vécu vécue vivant;" +
+    "convaincre: convaincs convainc convainquons convainquent convaincu convaincue convaincus convaincues convainquant;" +
+    "acquérir: acquiers acquiert acquérons acquièrent acquérait acquerra acquis acquise acquises acquérant;" +
+    "requérir: requiert requièrent requis requise requises requérant;" +
+    "résoudre: résous résout résolvons résolvent résolvait résoudra résoudrons résolu résolue résolus;" +
+    "extraire: extrais extrait extrayons extraient extrayait extraira extraite extraits extraites extrayant;" +
+    "servir: sers sert servons servez servent servait servira servi servie servis servant;" +
+    "partir: pars part partons partez partent partait partira parti partie partis parties partant;" +
+    "sortir: sors sort sortons sortent sortait sortira sorti sortie sortis sortant;" +
+    "lire: lis lit lisons lisez lisent lisait lira lu lue lus lisant;" +
+    "croire: crois croit croyons croient croyait croira cru croyant;" +
+    "plaire: plaît plaisent plu plaisant;" +
+    "construire: construis construit construisons construisent construisait construira construite construits construites construisant");
+  family(" de re ob main con sou ap ap", "tenir",
+    "tiens tient tenons tenez tiennent tenais tenait tenions teniez tenaient tiendrai tiendras tiendra tiendrons tiendrez tiendront tiendrais tiendrait tiendraient tint tinrent tenu tenue tenus tenues tenant tienne tiennes");
+  family(" de pré pro par inter re con", "venir",
+    "viens vient venons venez viennent venais venait venions veniez venaient viendrai viendras viendra viendrons viendrez viendront viendrais viendrait viendraient vint vinrent venu venue venus venues venant vienne viennes");
+  family(" per trans re sou ad é com pro", "mettre",
+    "mets met mettons mettez mettent mettais mettait mettaient mettrai mettra mettrons mettront mettrait mettraient mis mit mirent mise mises mette mettent mettant");
+  family(" com ap entre re sur", "prendre",
+    "prends prend prenons prenez prennent prenais prenait prenaient prendrai prendra prendrons prendront prendrait prendraient pris prit prirent prise prises prenne prennent prenant");
+  family("off ouv couv découv souff", "rir",
+    "re res rons rez rent rais rait raient rirai rira rirons riront rirait riraient rit rirent rant");
+  // participes passés de -rir
+  put(["offert", "offerte", "offerts", "offertes"], "offrir");
+  put(["ouvert", "ouverte", "ouverts", "ouvertes"], "ouvrir");
+  put(["couvert", "couverte", "couverts", "couvertes"], "couvrir");
+  put(["découvert", "découverte", "découverts", "découvertes"], "découvrir");
+  put(["souffert"], "souffrir");
+  family("con re per", "cevoir",
+    "çois çoit cevons cevez çoivent cevais cevait cevaient cevrai cevra cevrons cevront cevrait çu çue çus çues cevant çoive");
+  family("pro ré con tra intro dé sé", "duire",
+    "duis duit duisons duisez duisent duisais duisait duisaient duirai duira duirons duiront duirait duiraient duisit duisirent duite duits duites duisant duise");
+  family("at é ", "teindre",
+    "teins teint teignons teignez teignent teignait teignaient teindra teindrait teinte teintes teints teignant");
+  family("recon con", "naître",
+    "nais naît naissons naissez naissent naissait naissaient naîtra naîtrait nu nue nus nues naissant");
+  family("ins dé é pres", "crire",
+    "cris crit crivons crivez crivent crivait crivaient crira crirait crite crits crites crivant");
+  family("ac re ", "cueillir",
+    "cueille cueilles cueillons cueillez cueillent cueillait cueillera cueilli cueillie cueillis cueillant");
+  family("re", "joindre", "joins joint joignons joignez joignent joignait joindra jointe joints joignant");
+  put(["paraît", "paraissent", "paraissait", "paru", "parue", "paraissant", "paraître"], "paraître");
+  put(["apparaît", "apparaissent", "apparaissait", "apparu", "apparue", "apparaissant", "apparaître"], "apparaître");
+
+  ("répondre correspondre rendre vendre attendre étendre entendre dépendre défendre descendre perdre tendre").split(" ").forEach(conjRE);
+  ("agir choisir définir garantir grandir remplir réussir établir fournir investir réunir enrichir nourrir réfléchir saisir unir bâtir " +
+    "accomplir aboutir rétablir bannir chérir").split(" ").forEach(conjIR);
+  ("accompagner accélérer adapter afficher affirmer aligner améliorer analyser anticiper apporter appuyer articuler associer assurer " +
+    "attester automatiser baliser bénéficier caractériser casser certifier citer collaborer comparer compléter concerner conjuguer " +
+    "conseiller constituer continuer contribuer contrôler coordonner créer décliner déceler dédier demander déployer déterminer " +
+    "développer diversifier donner efforcer emballer encadrer envisager examiner explorer exprimer fluctuer fonder forger gagner gérer " +
+    "guider homologuer imposer innover intégrer jouer lancer lier maîtriser mener mesurer nécessiter objectiver optimiser parler partager " +
+    "participer passer penser personnaliser porter poser préparer présenter préserver privilégier procéder proposer protéger recommander " +
+    "recycler refléter renforcer rencontrer reposer respecter rester restaurer révéler réutiliser signifier simplifier souder souhaiter " +
+    "sourcer sublimer synthétiser séparer sécuriser tolérer tourner traiter transporter utiliser varier éviter évoluer œuvrer émaner " +
+    "éprouver réaliser considérer constater compter durer échanger élaborer engager estimer exister exploiter fabriquer former imaginer " +
+    "inspirer installer livrer manipuler montrer noter observer opérer organiser oser piloter polluer pratiquer prouver quitter regarder " +
+    "relever rêver sembler stocker tester transformer travailler trier trouver valider valoriser veiller vérifier viser visser émerger " +
+    "consacrer distinguer illustrer nettoyer laver graver imprimer colorer décorer charger expédier commander approvisionner " +
+    "fermer cultiver honorer exceller inviter avancer accepter dépasser progresser accorder adopter respirer " +
+    "préférer céder posséder récupérer répéter sélectionner fêter célébrer adhérer intéresser apprécier remercier").split(" ")
+    .forEach(conjER);
+
+  /* ---------- Clé canonique (lemme approximatif) ---------- */
+  function naKey(w) {
+    if (w.length <= 3) return w;
+    var s = w;
+    if (s.endsWith("s") && !s.endsWith("ss")) s = s.slice(0, -1);
+    else if (/[aeo]ux$/.test(s)) s = s.slice(0, -1);
+    if (s.length > 4) {
+      if (s.endsWith("elle")) s = s.slice(0, -2);
+      else if (s.endsWith("enne")) s = s.slice(0, -2);
+      else if (s.endsWith("ette")) s = s.slice(0, -2);
+      else if (s.endsWith("euse")) s = s.slice(0, -4) + "eu";
+      else if (s.endsWith("ive")) s = s.slice(0, -3) + "if";
+      else if (s.endsWith("ère")) s = s.slice(0, -3) + "er";
+      else if (s.endsWith("e")) s = s.slice(0, -1);
+    }
+    if (/eux$/.test(s)) s = s.slice(0, -1);
+    return s;
+  }
+  function canon(raw) {
+    var w = low(raw);
+    if (ALIAS[w]) w = ALIAS[w];
+    if (w.endsWith("'")) return w;
+    if (FUNC.has(w)) return w;
+    if (isNum(w)) return w;
+    if (Object.prototype.hasOwnProperty.call(IRREG, w)) return naKey(IRREG[w]);
+    if (Object.prototype.hasOwnProperty.call(VERB, w)) return "v:" + VERB[w];
+    return naKey(w);
+  }
+
+  /* ---------- Racine (famille de mots) ---------- */
+  var SUFFIXES = ["issement", "ification", "isation", "abilite", "ibilite", "ation", "ition", "ement", "ment", "ite", "eur", "euse",
+    "rice", "ance", "ence", "ique", "isme", "iste", "able", "ible", "age", "erie", "iere", "ier", "ienne", "ien", "aire", "oire",
+    "if", "ive", "eux", "al", "el", "ure", "ion", "ant", "ent", "er", "ir", "re", "ie", "ee", "e"];
+  var RAC_STOP = new Set(["pokémon", "pokemon", "pikachu", "mélofée", "melofee", "mélodelfe", "melodelfe", "mélo", "melo", "plus"]);
+  function racine(raw) {
+    var s = stripAcc(low(raw));
+    if (RAC_STOP.has(s)) return s;
+    if (s.endsWith("s") && !s.endsWith("ss") && s.length > 4) s = s.slice(0, -1);
+    else if (/[aeo]ux$/.test(s)) s = s.slice(0, -1);
+    for (var it = 0; it < 2; it++) {
+      var cut = false;
+      for (var k = 0; k < SUFFIXES.length; k++) {
+        var suf = SUFFIXES[k];
+        if (s.endsWith(suf) && s.length - suf.length >= 4) { s = s.slice(0, -suf.length); cut = true; break; }
+      }
+      if (!cut) break;
+    }
+    return s;
+  }
+  function commonPrefix(a, b) { var i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; return i; }
+  function lev1(a, b) {
+    if (a === b) return true;
+    var la = a.length, lb = b.length;
+    if (Math.abs(la - lb) > 1) return false;
+    var i = 0, j = 0, edits = 0;
+    while (i < la && j < lb) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      if (++edits > 1) return false;
+      if (la > lb) i++; else if (lb > la) j++; else { i++; j++; }
+    }
+    return edits + (la - i) + (lb - j) <= 1;
+  }
+  function hash01(str) {
+    var h = 2166136261;
+    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return ((h >>> 0) % 10007) / 10007;
+  }
+
+  /* ---------- Lexique sémantique ---------- */
+  var LEX = { byKey: new Map(), byRac: new Map(), clusters: [] };
+  function loadLexicon(text) {
+    var domain = "?", dBase = 0.34, cBase = 0.6;
+    text.split("\n").forEach(function (line) {
+      line = line.trim(); if (!line || line[0] === "#") return;
+      if (line[0] === "@") {
+        var parts = line.slice(1).trim().split(/\s+/);
+        domain = parts[0];
+        cBase = parts[1] ? parseFloat(parts[1]) : 0.6;
+        dBase = parts[2] ? parseFloat(parts[2]) : 0.34;
+        return;
+      }
+      var strong = line[0] === "=";
+      var words = line.slice(1).trim().split(/\s+/);
+      var id = LEX.clusters.length;
+      LEX.clusters.push({ id: id, domain: domain, base: strong ? 0.84 : cBase, dBase: dBase, words: words });
+      words.forEach(function (w) {
+        var k = canon(w), r = racine(w);
+        if (!LEX.byKey.has(k)) LEX.byKey.set(k, new Set());
+        LEX.byKey.get(k).add(id);
+        if (r.length >= 4 && !FUNC.has(low(w))) {
+          if (!LEX.byRac.has(r)) LEX.byRac.set(r, new Set());
+          LEX.byRac.get(r).add(id);
+        }
+      });
+    });
+  }
+  function clustersOf(key, rac) {
+    var direct = LEX.byKey.get(key);
+    if (direct) return { set: direct, pen: 1 };
+    var viaRac = rac && rac.length >= 4 ? LEX.byRac.get(rac) : null;
+    if (viaRac) return { set: viaRac, pen: 0.92 };
+    return null;
+  }
+  function inLexicon(raw) { return !!clustersOf(canon(raw), racine(raw)); }
+
+  function lexSim(a, b) {
+    var ca = clustersOf(a.key, a.rac), cb = clustersOf(b.key, b.rac);
+    if (!ca || !cb) return 0;
+    var best = 0, j = hash01(a.key + "|" + b.key);
+    ca.set.forEach(function (ia) {
+      cb.set.forEach(function (ib) {
+        var A = LEX.clusters[ia], B = LEX.clusters[ib], s = 0;
+        if (ia === ib) s = A.base + 0.13 * j;
+        else if (A.domain === B.domain) s = Math.min(A.dBase, B.dBase) + 0.09 * j;
+        else if (sharesWord(A, B)) s = 0.42 + 0.08 * j;
+        if (s > best) best = s;
+      });
+    });
+    return Math.min(best * Math.min(ca.pen, cb.pen), 0.97);
+  }
+  var shareCache = new Map();
+  function sharesWord(A, B) {
+    var k = A.id < B.id ? A.id + ":" + B.id : B.id + ":" + A.id;
+    if (shareCache.has(k)) return shareCache.get(k);
+    var setA = new Set(A.words.map(canon)), r = false;
+    for (var i = 0; i < B.words.length; i++) if (setA.has(canon(B.words[i]))) { r = true; break; }
+    shareCache.set(k, r);
+    return r;
+  }
+
+  function info(raw) {
+    var l = low(raw);
+    return { raw: raw, low: l, key: canon(l), rac: racine(l), flat: stripAcc(l), func: FUNC.has(l) || l.endsWith("'") };
+  }
+
+  /* Proximité entre un mot proposé (g) et un mot du texte (w) : 0..1 (1 = identique) */
+  /* ---------- Pokédex : proximité entre Pokémon (famille, type, génération) ---------- */
+  var DEX = new Map(), TYPEW = new Map();
+  var TYPES = { no: "normal", fe: "feu", ea: "eau", pl: "plante", el: "électrik", gl: "glace", co: "combat", po: "poison", so: "sol",
+    vo: "vol", ps: "psy", "in": "insecte", ro: "roche", sp: "spectre", dr: "dragon", te: "ténèbres", ac: "acier", fa: "fée" };
+  function loadDex(text) {
+    var gen = 0, mode = "dex", famId = 0;
+    Object.keys(TYPES).forEach(function (c) { TYPEW.set(canon(TYPES[c]), c); });
+    text.split("\n").forEach(function (line) {
+      line = line.trim(); if (!line) return;
+      if (line === "#FAM") { mode = "fam"; return; }
+      if (line === "#FORMES") { mode = "formes"; return; }
+      var m = /^#G(\d+)/.exec(line); if (m) { gen = +m[1]; mode = "dex"; return; }
+      if (line[0] === "#") return;
+      line.split(/\s+/).forEach(function (e) {
+        var p = e.split(":"), k = canon(p[0]), t = (p[1] || "").split(".").filter(Boolean), d = DEX.get(k);
+        if (mode === "dex") DEX.set(k, { name: p[0], g: gen, forms: t.length ? [t] : [], f: null });
+        else if (mode === "formes" && d && t.length) d.forms.push(t);
+        else if (mode === "fam" && d) d.f = famId + 1;
+      });
+      if (mode === "fam") famId++;
+    });
+  }
+  function sharedTypes(a, b) {
+    var best = 0;
+    a.forms.forEach(function (x) { b.forms.forEach(function (y) {
+      var n = x.filter(function (t) { return y.indexOf(t) >= 0; }).length;
+      if (n > best) best = n;
+    }); });
+    return best;
+  }
+  function hasType(p, t) { return p.forms.some(function (f) { return f.indexOf(t) >= 0; }); }
+  var POKEWORD = null;
+  function pokeSim(g, w) {
+    if (!DEX.size) return 0;
+    var a = DEX.get(g.key), b = DEX.get(w.key), j = hash01(g.key + "#" + w.key);
+    if (!POKEWORD) POKEWORD = canon("pokémon");
+    if (a && b) {
+      if (a.f && a.f === b.f) return 0.72 + 0.1 * j;
+      return Math.min(0.64, 0.36 + 0.13 * sharedTypes(a, b) + (a.g === b.g ? 0.08 : 0) + 0.03 * j);
+    }
+    var p = a || b, other = a ? w : g;
+    if (!p) return 0;
+    var tc = TYPEW.get(other.key);
+    if (tc && hasType(p, tc)) return 0.5 + 0.06 * j;
+    if (other.key === POKEWORD) return 0.38;
+    return 0;
+  }
+
+  function similarity(g, w, ai) {
+    if (g.key === w.key) return 1;
+    var s = 0;
+    if (g.flat === w.flat || stripAcc(g.key) === stripAcc(w.key)) s = 0.95;
+    if (isNum(g.low) && isNum(w.low)) {
+      var a = +g.low, b = +w.low;
+      if (a >= 1000 && a <= 2200 && b >= 1000 && b <= 2200) s = Math.max(s, 0.74 - Math.abs(a - b) / 160);
+      else { var r = Math.min(a, b) / Math.max(a, b || 1); s = Math.max(s, r > 0.4 ? 0.3 + 0.35 * r : 0); }
+      return Math.max(0, Math.min(s, 0.9));
+    }
+    if (!g.func && !w.func) {
+      if (g.rac.length >= 4 && g.rac === w.rac) s = Math.max(s, 0.72 + 0.08 * hash01(g.key + w.key));
+      var cp = commonPrefix(g.flat, w.flat), short = Math.min(g.flat.length, w.flat.length);
+      if (cp >= 6 && cp >= 0.75 * short) s = Math.max(s, 0.62 + 0.06 * hash01(w.key + g.key));
+      if (short >= 5 && lev1(g.flat, w.flat)) s = Math.max(s, 0.6);
+    }
+    s = Math.max(s, lexSim(g, w), pokeSim(g, w));
+    if (ai && ai.has(w.key)) s = Math.max(s, ai.get(w.key));
+    return Math.min(s, 0.97);
+  }
+
+  function heat(score) {
+    if (score >= 0.85) return 4;
+    if (score >= 0.65) return 3;
+    if (score >= 0.45) return 2;
+    if (score >= 0.3) return 1;
+    return 0;
+  }
+
+  /* ---------- Validation d'une proposition ---------- */
+  var ELIDED_LONG = ["qu", "jusqu", "lorsqu", "puisqu", "quoiqu", "presqu"];
+  function normalizeGuess(input) {
+    var g = low(String(input).trim());
+    if (!g) return { error: "vide" };
+    if (/\s/.test(g)) return { error: "Un seul mot à la fois." };
+    if (ALIAS[g]) g = ALIAS[g];
+    var m = g.match(/^([a-zà-öø-ÿœæ]+)'$/);
+    var base = m ? m[1] : g;
+    if (ELIDABLE.has(base) && (m || base.length === 1 || ELIDED_LONG.indexOf(base) >= 0)) return { g: base + "'" };
+    if (g.indexOf("'") >= 0 && !COMPOUND_APOS.has(g)) return { error: "Un seul mot à la fois : tapez « l » puis « aluminium » plutôt que « l’aluminium »." };
+    if (!/^[a-zà-öø-ÿœæ0-9&']+$/.test(g)) return { error: "Lettres et chiffres uniquement, sans tiret ni ponctuation." };
+    if (g.length > 30) return { error: "Mot trop long." };
+    return { g: g };
+  }
+
+  /* ---------- Partie ---------- */
+  function Game(puzzle) {
+    this.puzzle = puzzle;
+    this.blocks = [];
+    this.words = [];
+    this.byKey = new Map();
+    var self = this;
+    var add = function (kind, text) {
+      var toks = tokenize(text).map(function (t) {
+        if (!t.w) return { w: false, s: t.s };
+        var inf = info(t.s);
+        var wd = { w: true, s: t.s, i: self.words.length, key: inf.key, low: inf.low, rac: inf.rac, flat: inf.flat, func: inf.func,
+          len: Array.from(t.s.replace(/['’]$/, "")).length, title: kind === "title", found: false, best: null };
+        self.words.push(wd);
+        if (!self.byKey.has(wd.key)) self.byKey.set(wd.key, []);
+        self.byKey.get(wd.key).push(wd.i);
+        return wd;
+      });
+      self.blocks.push({ kind: kind, toks: toks });
+    };
+    add("title", puzzle.title);
+    puzzle.paras.forEach(function (p) { add("p", p); });
+    this.titleWords = this.words.filter(function (w) { return w.title; });
+    this.guesses = [];      // {g, n (numéro), found, best, unknown}
+    this.seen = new Set();
+    this.ai = new Map();    // clé proposée -> Map(clé texte -> score)
+    this.won = false;
+    this.wonAt = 0;
+  }
+  Game.prototype.uniqueKeys = function () { return Array.from(this.byKey.keys()); };
+  Game.prototype.count = function () { return this.guesses.filter(function (x) { return !x.unknown; }).length; };
+  Game.prototype.reps = function () {
+    // un représentant lisible par clé (pour l'IA), mots de contenu uniquement
+    var out = [], self = this;
+    this.byKey.forEach(function (idxs, key) {
+      var w = self.words[idxs[0]];
+      if (w.func || isNum(w.low) || w.len < 3) return;
+      out.push({ key: key, word: w.low });
+    });
+    return out;
+  };
+  Game.prototype.propose = function (input) {
+    var n = normalizeGuess(input);
+    if (n.error) return { status: "invalid", message: n.error };
+    var g = n.g;
+    if (this.seen.has(g)) return { status: "dup", g: g };
+    this.seen.add(g);
+    var gi = info(g);
+    var idxs = (this.byKey.get(gi.key) || []).slice();
+    // Lettre seule (« l », « d », « c »…) : révèle la forme élidée ET la lettre isolée (ex. « note D »)
+    if (/^[a-z]'$/.test(g)) idxs = idxs.concat(this.byKey.get(g.slice(0, -1)) || []);
+    var found = [], self = this;
+    idxs.forEach(function (i) {
+      var w = self.words[i];
+      if (!w.found) { w.found = true; found.push(i); }
+    });
+    var already = idxs.length - found.length;
+    var entry = { g: g, key: gi.key, found: found.length, total: idxs.length, best: 0, nearCount: 0, unknown: false };
+    this.guesses.push(entry);
+    entry.n = this.count();
+    this.scoreGuess(entry, gi);
+    var res = { status: "ok", g: g, entry: entry, found: found, already: already, win: false };
+    if (!this.won && this.titleWords.every(function (w) { return w.found; })) {
+      this.won = true; this.wonAt = entry.n; res.win = true;
+    }
+    return res;
+  };
+  Game.prototype.scoreGuess = function (entry, gi) {
+    gi = gi || info(entry.g);
+    var ai = this.ai.get(gi.key), self = this, best = 0, near = 0, changed = [];
+    this.byKey.forEach(function (idxs, key) {
+      if (key === gi.key) return;
+      var w = self.words[idxs[0]];
+      var s = similarity(gi, w, ai);
+      if (s >= 0.3) {
+        near += idxs.length;
+        if (s > best) best = s;
+        idxs.forEach(function (i) {
+          var wd = self.words[i];
+          if (wd.found) return;
+          if (!wd.best || s > wd.best.score) { wd.best = { g: entry.g, score: s }; changed.push(i); }
+        });
+      }
+    });
+    entry.best = Math.max(entry.best || 0, best);
+    entry.nearCount = near;
+    return changed;
+  };
+  Game.prototype.applyAI = function (gKey, pairs) {
+    // pairs : [[clé texte, score 0..1]]
+    var m = this.ai.get(gKey) || new Map();
+    pairs.forEach(function (p) { if (p[1] > (m.get(p[0]) || 0)) m.set(p[0], p[1]); });
+    this.ai.set(gKey, m);
+    var entry = null;
+    for (var i = this.guesses.length - 1; i >= 0; i--) if (this.guesses[i].key === gKey) { entry = this.guesses[i]; break; }
+    if (!entry) return [];
+    return this.scoreGuess(entry);
+  };
+  Game.prototype.markUnknown = function (gKey) {
+    for (var i = 0; i < this.guesses.length; i++) if (this.guesses[i].key === gKey && !this.guesses[i].found) this.guesses[i].unknown = true;
+    var n = 0;
+    this.guesses.forEach(function (x) { if (!x.unknown) x.n = ++n; else x.n = null; });
+  };
+  Game.prototype.revealAll = function () { this.words.forEach(function (w) { if (!w.found) w.shown = true; }); };
+  Game.prototype.progress = function () {
+    var tot = this.words.length, f = this.words.filter(function (w) { return w.found; }).length;
+    return tot ? f / tot : 0;
+  };
+
+  /* ---------- Calendrier : nouvelle page chaque jour à midi (Paris) ---------- */
+  var EPOCH = Date.UTC(2026, 10, 5); // page n°1 : 5 novembre 2026, 12 h
+  function parisParts(date) {
+    var f = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
+    var o = {};
+    f.formatToParts(date).forEach(function (p) { o[p.type] = p.value; });
+    return { y: +o.year, mo: +o.month, d: +o.day, h: +o.hour % 24, mi: +o.minute, s: +o.second };
+  }
+  function dayNumber(date) {
+    var p = parisParts(date || new Date());
+    var day = Date.UTC(p.y, p.mo - 1, p.d) - (p.h < 12 ? 86400000 : 0);
+    return Math.max(1, Math.round((day - EPOCH) / 86400000) + 1);
+  }
+  function secondsToNext(date) {
+    var p = parisParts(date || new Date());
+    var now = p.h * 3600 + p.mi * 60 + p.s;
+    var target = 12 * 3600;
+    var s = now < target ? target - now : 86400 - now + target;
+    // jour de changement d'heure : on recale sur midi, heure de Paris
+    var q = parisParts(new Date((date || new Date()).getTime() + s * 1000));
+    if (q.h !== 12) s += (12 - q.h) * 3600;
+    return Math.max(1, s);
+  }
+
+  return {
+    tokenize: tokenize, canon: canon, racine: racine, info: info, similarity: similarity, heat: heat,
+    normalizeGuess: normalizeGuess, loadLexicon: loadLexicon, loadDex: loadDex, inLexicon: inLexicon, Game: Game,
+    dayNumber: dayNumber, secondsToNext: secondsToNext, stripAcc: stripAcc, low: low, isNum: isNum, FUNC: FUNC, VERB: VERB
+  };
+})();
+if (typeof module !== "undefined") module.exports = TX;
+
+
+</script>
+<script>
+var LEXIQUE = "# Lexique de proximité. \"@ domaine [poids grappe] [poids domaine]\" ; \"=\" synonymes forts ; \"~\" grappe de mots proches.\n@ creatures\n= pokémon pokemon pokémons\n~ pokémon créature créatures monstre monstres espèce espèces bestiole animal animaux pocket\n~ dresseur dresseurs dresseuse joueur joueurs champion championne maître entraîneur rival\n~ pokédex pokedex encyclopédie fiche entrée description descriptions numéro\n~ légendaire légendaires fabuleux mythique mythiques rare rares rareté ultra-chimère paradoxe\n~ chromatique chromatiques shiny brillant couleur couleurs teinte rose pâle\n~ sauvage sauvages capturer capture capturé ball pokéball attraper\n@ evolution\n= évolution évolutions évoluer évolue évolué évolutif évolutive\n~ évolution évoluer métamorphose transformation transformer stade stades famille familles pré-évolution forme formes\n~ méga mégaévolution gigamax dynamax primo résurgence téracristal\n~ niveau niveaux expérience exp montée gain points bonbon\n~ pierre pierres caillou roche gemme cristal minéral fragment morceau\n~ échange échanger échangé commerce\n~ bonheur heureux affection amitié joie\n@ combat\n= capacité capacités attaque attaques technique techniques\n~ capacité attaque coup frappe charge éclair tonnerre foudre charme berceuse rugissement morsure\n~ combat combats duel bataille affronter adversaire adversaires ennemi ennemis attaquant assaillant victime\n~ talent talents aptitude don pouvoir pouvoirs caché\n~ dégâts blesser blessure puissance précision effet effets statut statuts attraction amoureux séduire séduit\n~ type types élément éléments double\n~ équipe tête placé premier\n@ univers\n~ génération générations première deuxième troisième quatrième cinquième sixième septième huitième neuvième version versions\n~ jeu jeux jeux-vidéo console cartouche principal principaux série séries\n~ dessin animé anime épisode épisodes manga mangas chapitre film\n~ région régions continent archipel île territoire\n~ mont montagne grotte grottes caverne souterrain sommet route lac forêt\n~ lune lunaire lumière nuit nuits pleine soleil étoile espace cosmos ciel astre\n~ danser danse dansant cérémonie culte rituel vénérer vénérant célébrer\n@ corps\n~ fourrure poil poils pelage queue oreilles oreille pointe mèche bouclée aile ailes\n~ petit petite grand grande taille poids bipède corps silhouette\n~ timide intelligent fidèle proche gentil mignon adorable populaire\n~ sexe sexes mâle femelle genre ratio asexué unisexe opposé\n@ hasard\n~ chance chances hasard probabilité pourcentage ratio taux deux trois\n~ rencontrer rencontre rencontré trouver trouvé apparaître apparaît croiser\n@ fonction 0.42 0.0\n~ le la les l'\n~ un une des\n~ du de d' des\n~ à au aux\n~ ce cet cette ces c'\n~ son sa ses\n~ notre nos\n~ votre vos\n~ il ils elle elles\n~ qui que qu' dont quoi\n~ nous vous on\n~ et ou ni mais\n~ en dans\n@ general 0.56 0.0\n~ accompagner accompagnement aider aide soutenir soutien guider conseiller conseil conseils assister écoute proximité\n~ garantir garantie assurer assurance certifier attester promettre\n~ besoin besoins demande demandes attente attentes exigence contrainte contraintes impératif impératifs critère critères\n~ solution solutions réponse réponses moyen moyens outil outils dispositif option\n~ proposer offrir fournir apporter présenter offre proposition\n~ développer développement concevoir créer création élaborer élaboration construire fabriquer produire production\n~ choisir choix sélectionner sélection préférer privilégier opter décider\n~ améliorer amélioration optimiser renforcer progresser perfectionner\n~ maîtrise maîtriser contrôler gérer gestion piloter savoir expertise compétence compétences connaissance connaissances expérience experts expert\n~ adapter adapté adaptée adaptation ajuster personnaliser modulable flexible polyvalent polyvalente\n~ projet projets mission objectif objectifs ambition ambitions but vision stratégie démarche approche\n~ complexe complexité difficile difficiles simple simplicité compliqué\n~ critique crucial important primordial primordiale essentiel majeur majeurs prépondérant fondamental clé\n~ nécessaire nécessaires nécessité nécessiter indispensable obligatoire requis exiger\n~ unique uniques exclusif singulier singulière rare original originale\n~ grand grands grande grandes petit petites large haut haute bas basses\n~ nombreux nombreuses plusieurs multiples divers diverses différent différents différentes variés variées\n~ niveau niveaux seuil seuils degré échelle palier\n~ étape étapes phase cycle processus parcours chemin\n~ temps durée période jour quotidien année siècle long terme\n~ système systèmes systémique structure organisation global globale\n~ évoluer évolution changer changement changements transformation transformations transformer\n~ utilisation utiliser usage usages emploi employer servir application applications\n~ léger légère légères lourd poids\n~ interdépendance interdépendant lien liens relation relations connexion\n~ réalité réalités concret concrète concrètement réel terrain\n~ fort forte fortes puissant robuste solide\n~ visible invisible apparent caché\n~ continuité continu continue constant constante constantes permanent régulier régulièrement\n~ urgent urgence rapide rapidement vite délai\n~ possible possibilité capable capables capacité pouvoir potentiel potentielles\n~ notion concept idée principe\n~ sujet sujets thème question thématique\n~ façon manière moyen mode modes méthode\n~ conduire guider mener piloter diriger\n~ cœur centre noyau\n~ mission vocation rôle fonction\n~ simplifier simplifiée faciliter facile faciles\n~ émerger apparaître naître surgir révéler\n~ résultat résultats donnée données mesure analyse\n~ impact impacts effet effets conséquence influence\n~ meilleur meilleurs meilleure parfait parfaite parfaitement idéal idéale optimal\n~ complet complète complètement entièrement totalité total intégral intégrale\n~ strict stricte strictes stricts rigoureux sévère\n~ interne internes externe externes intérieur extérieur\n~ récent récents récentes nouveau moderne actuel\n~ premier premiers première premières dernier initial\n~ connaître connaissance savoir comprendre compréhension\n~ engagement engager promesse vocation\n\n# ===== Univers Pokémon : une mauvaise réponse « de la bonne famille » est chaude =====\n@ regions 0.71 0.5\n~ kanto johto hoenn sinnoh unys kalos alola galar paldea hisui septentria kitakami myrtille orre fiore almia oblivia ransei\n@ typesp 0.72 0.45\n~ normal feu eau plante électrik glace combat poison sol vol psy insecte roche spectre dragon ténèbres acier fée\n@ statut 0.62 0.4\n~ paralysie paralysé brûlure brûlé gel gelé sommeil endormi empoisonnement empoisonné confusion confus\n~ pluie soleil grêle tempête sable neige brouillard météo climat\n~ pv attaque défense vitesse spéciale statistique statistiques stats précision esquive\n~ pokéball superball hyperball masterball honorball ball balls\n@ jeuxv 0.66 0.4\n~ rouge bleu vert jaune or argent cristal rubis saphir émeraude diamant perle platine noir blanc soleil lune épée bouclier écarlate violet stadium colosseum ranger donjon go sleep arceus\n@ persos 0.7 0.45\n~ chen orme seko sorbier keteleeria platane euphorbe magnolia professeur professeurs\n~ rocket aqua magma galaxie plasma flare skull yell team\n~ sacha ondine pierre aurore iris flora drew paul régis jessie james miaouss\n~ champion champions championne arène arènes conseil maître maîtres badge badges ligue\n@ legendaires 0.71 0.5\n~ artikodin électhor sulfura\n~ raikou entei suicune\n~ lugia ho celebi\n~ regirock regice registeel regigigas regieleki regidrago\n~ latias latios\n~ kyogre groudon rayquaza\n~ créhelf créfollet créfadet\n~ dialga palkia giratina arceus\n~ boréas fulguris démétéros amovénus\n~ terrakium viridium cobaltium keldeo\n~ reshiram zekrom kyurem\n~ xerneas yveltal zygarde\n~ cosmog cosmovum solgaleo lunala necrozma\n~ zacian zamazenta éthernatos\n~ koraidon miraidon terapagos\n~ mew mewtwo jirachi deoxys darkrai shaymin manaphy phione victini meloetta genesect diancie hoopa volcanion\n~ tokorico tokopiyon tokotoro tokopisco\n~ heatran cresselia\n@ starters 0.6 0.36\n~ bulbizarre salamèche carapuce pikachu évoli\n~ germignon héricendre kaiminus\n~ arcko poussifeu gobou\n~ tortipouss ouisticram tiplouf\n~ vipélierre gruikui moustillon\n~ marisson feunnec grenousse\n~ brindibou flamiaou otaquin\n~ ouistempo flambino larméléon\n~ poussacha chochodile coiffeton\n~ broussatif caloulou ogéko\n@ formes 0.7 0.4\n~ méga mégaévolution gigamax dynamax téracristal téracristallisation primo forme formes régionale alola galar hisui paldea\n";
+var POKEDEX = "# Pokédex : \"#G<n>\" = génération ; entrées nom:types (no fe ea pl el gl co po so vo ps in ro sp dr te ac fa)\n#G1\nbulbizarre:pl.po herbizarre:pl.po florizarre:pl.po salamèche:fe reptincel:fe dracaufeu:fe.vo carapuce:ea carabaffe:ea tortank:ea chenipan:in chrysacier:in papilusion:in.vo aspicot:in.po coconfort:in.po dardargnan:in.po roucool:no.vo roucoups:no.vo roucarnage:no.vo rattata:no rattatac:no piafabec:no.vo rapasdepic:no.vo abo:po arbok:po pikachu:el raichu:el sabelette:so sablaireau:so nidoran:po nidorina:po nidoqueen:po.so nidorino:po nidoking:po.so mélofée:fa mélodelfe:fa goupix:fe feunard:fe rondoudou:no.fa grodoudou:no.fa nosferapti:po.vo nosferalto:po.vo mystherbe:pl.po ortide:pl.po rafflesia:pl.po paras:in.pl parasect:in.pl mimitoss:in.po aéromite:in.po taupiqueur:so triopikeur:so miaouss:no persian:no psykokwak:ea akwakwak:ea férosinge:co colossinge:co caninos:fe arcanin:fe ptitard:ea têtarte:ea tartard:ea.co abra:ps kadabra:ps alakazam:ps machoc:co machopeur:co mackogneur:co chétiflor:pl.po boustiflor:pl.po empiflor:pl.po tentacool:ea.po tentacruel:ea.po racaillou:ro.so gravalanch:ro.so grolem:ro.so ponyta:fe galopa:fe ramoloss:ea.ps flagadoss:ea.ps magnéti:el.ac magnéton:el.ac canarticho:no.vo doduo:no.vo dodrio:no.vo otaria:ea lamantine:ea.gl tadmorv:po grotadmorv:po kokiyas:ea crustabri:ea.gl fantominus:sp.po spectrum:sp.po ectoplasma:sp.po onix:ro.so soporifik:ps hypnomade:ps krabby:ea krabboss:ea voltorbe:el électrode:el noeunoeuf:pl.ps noadkoko:pl.ps osselait:so ossatueur:so kicklee:co tygnon:co excelangue:no smogo:po smogogo:po rhinocorne:so.ro rhinoféros:so.ro leveinard:no saquedeneu:pl kangourex:no hypotrempe:ea hypocéan:ea poissirène:ea poissoroy:ea stari:ea staross:ea.ps mime:ps.fa insécateur:in.vo lippoutou:gl.ps élektek:el magmar:fe scarabrute:in tauros:no magicarpe:ea léviator:ea.vo lokhlass:ea.gl métamorph:no évoli:no aquali:ea voltali:el pyroli:fe porygon:no amonita:ro.ea amonistar:ro.ea kabuto:ro.ea kabutops:ro.ea ptéra:ro.vo ronflex:no artikodin:gl.vo électhor:el.vo sulfura:fe.vo minidraco:dr draco:dr dracolosse:dr.vo mewtwo:ps mew:ps\n#G2\ngermignon:pl macronium:pl méganium:pl héricendre:fe feurisson:fe typhlosion:fe kaiminus:ea crocrodil:ea aligatueur:ea fouinette:no fouinar:no hoothoot:no.vo noarfang:no.vo coxy:in.vo coxyclaque:in.vo mimigal:in.po migalos:in.po nostenfer:po.vo loupio:ea.el lanturn:ea.el pichu:el mélo:fa toudoudou:no.fa togepi:fa togetic:fa.vo natu:ps.vo xatu:ps.vo wattouat:el lainergie:el pharamp:el joliflor:pl marill:ea.fa azumarill:ea.fa simularbre:ro tarpaud:ea granivol:pl.vo floravol:pl.vo cotovol:pl.vo capumain:no tournegrin:pl héliatronc:pl yanma:in.vo axoloto:ea.so maraiste:ea.so mentali:ps noctali:te cornèbre:te.vo roigada:ea.ps feuforêve:sp zarbi:ps qulbutoké:ps girafarig:no.ps pomdepik:in foretress:in.ac insolourdo:no scorplane:so.vo steelix:ac.so snubbull:fa granbull:fa qwilfish:ea.po cizayox:in.ac caratroc:in.ro scarhino:in.co farfuret:te.gl teddiursa:no ursaring:no limagma:fe volcaropod:fe.ro marcacrin:gl.so cochignon:gl.so corayon:ea.ro rémoraid:ea octillery:ea cadoizo:gl.vo démanta:ea.vo airmure:ac.vo malosse:te.fe démolosse:te.fe hyporoi:ea.dr phanpy:so donphan:so porygon2:no cerfrousse:no queulorior:no debugant:co kapoera:co lippouti:gl.ps élekid:el magby:fe écrémeuh:no leuphorie:no raikou:el entei:fe suicune:ea embrylex:ro.so ymphect:ro.so tyranocif:ro.te lugia:ps.vo celebi:ps.pl\n#G3\narcko:pl massko:pl jungko:pl poussifeu:fe galifeu:fe.co braségali:fe.co gobou:ea flobio:ea.so laggron:ea.so medhyèna:te grahyèna:te zigzaton:no linéon:no chenipotte:in armulys:in charmillon:in.vo blindalys:in papinox:in.po nénupiot:ea.pl lombre:ea.pl ludicolo:ea.pl grainipiot:pl pifeuil:pl.te tengalice:pl.te nirondelle:no.vo hélédelle:no.vo goélise:ea.vo bekipan:ea.vo tarsal:ps.fa kirlia:ps.fa gardevoir:ps.fa arakdo:in.ea maskadra:in.vo balignon:pl chapignon:pl.co parecool:no vigoroth:no monaflèmit:no ningale:in.so ninjask:in.vo munja:in.sp chuchmur:no ramboum:no brouhabam:no makuhita:co hariyama:co azurill:no.fa tarinor:ro skitty:no delcatty:no ténéfix:te.sp mysdibule:ac.fa galekid:ac.ro galegon:ac.ro galeking:ac.ro méditikka:co.ps charmina:co.ps dynavolt:el élecsprint:el posipi:el négapi:el muciole:in lumivole:in rosélia:pl.po gloupti:po avaltout:po carvanha:ea.te sharpedo:ea.te wailmer:ea wailord:ea chamallot:fe.so camérupt:fe.so chartor:fe spoink:ps groret:ps spinda:no kraknoix:so vibraninf:so.dr libégon:so.dr cacnea:pl cacturne:pl.te tylton:no.vo altaria:dr.vo mangriff:no séviper:po séléroc:ro.ps solaroc:ro.ps barloche:ea.so barbicha:ea.so écrapince:ea colhomard:ea.te balbuto:so.ps kaorine:so.ps lilia:ro.pl vacilys:ro.pl anorith:ro.in armaldo:ro.in barpau:ea milobellus:ea morphéo:no kecleon:no polichombr:sp branette:sp skelénox:sp téraclope:sp tropius:pl.vo éoko:ps absol:te okéoké:ps stalgamin:gl oniglali:gl obalie:gl.ea phogleur:gl.ea kaimorse:gl.ea coquiperl:ea serpang:ea rosabyss:ea relicanth:ea.ro lovdisc:ea draby:dr drackhaus:dr drattak:dr.vo terhal:ac.ps métang:ac.ps métalosse:ac.ps regirock:ro regice:gl registeel:ac latias:dr.ps latios:dr.ps kyogre:ea groudon:so rayquaza:dr.vo jirachi:ac.ps deoxys:ps\n#G4\ntortipouss:pl boskara:pl torterra:pl.so ouisticram:fe chimpenfeu:fe.co simiabraz:fe.co tiplouf:ea prinplouf:ea pingoléon:ea.ac étourmi:no.vo étourvol:no.vo étouraptor:no.vo keunotor:no castorno:no.ea crikzik:in mélokrik:in lixy:el luxio:el luxray:el rozbouton:pl.po roserade:pl.po kranidos:ro charkos:ro dinoclier:ro.ac bastiodon:ro.ac cheniti:in cheniselle:in.pl papilord:in.vo apitrini:in.vo apireine:in.vo pachirisu:el mustébouée:ea mustéflott:ea ceribou:pl ceriflor:pl sancoki:ea tritosor:ea.so capidextre:no baudrive:sp.vo grodrive:sp.vo laporeille:no lockpin:no magirêve:sp corboss:te.vo chaglam:no chaffreux:no korillon:ps moufouette:po.te moufflair:po.te archéomire:ac.ps archéodong:ac.ps manzaï:ro ptiravi:no pijako:no.vo spiritomb:sp.te griknot:dr.so carmache:dr.so carchacrok:dr.so goinfrex:no riolu:co lucario:co.ac hippopotas:so hippodocus:so rapion:po.in drascore:po.te cradopaud:po.co coatox:po.co vortente:pl écayon:ea luminéon:ea babimanta:ea.vo blizzi:pl.gl blizzaroi:pl.gl dimoret:te.gl magnézone:el.ac coudlangue:no rhinastoc:so.ro bouldeneu:pl élekable:el maganon:fe togekiss:fa.vo yanmega:in.vo phyllali:pl givrali:gl scorvol:so.vo mammochon:gl.so gallame:ps.co tarinorme:ro.ac noctunoir:sp momartik:gl.sp motisma:el.sp créhelf:ps créfollet:ps créfadet:ps dialga:ac.dr palkia:ea.dr heatran:fe.ac regigigas:no giratina:sp.dr cresselia:ps phione:ea manaphy:ea darkrai:te shaymin:pl arceus:no\n#G5\nvictini:ps.fe vipélierre:pl lianaja:pl majaspic:pl gruikui:fe grotichon:fe.co roitiflam:fe.co moustillon:ea mateloutre:ea clamiral:ea ratentif:no miradar:no ponchiot:no ponchien:no mastouffe:no chacripan:te léopardus:te feuillajou:pl feuiloutan:pl flamajou:fe flamoutan:fe flotajou:ea flotoutan:ea munna:ps mushana:ps poichigeon:no.vo colombeau:no.vo déflaisan:no.vo zébibron:el zéblitz:el nodulithe:ro géolithe:ro gigalithe:ro chovsourir:ps.vo rhinolove:ps.vo rototaupe:so minotaupe:so.ac nanméouïe:no charpenti:co ouvrifier:co bétochef:co tritonde:ea batracné:ea.so crapustule:ea.so judokrak:co karaclée:co larveyette:in.pl couverdure:in.pl manternel:in.pl venipatte:in.po scobolide:in.po brutapode:in.po doudouvet:pl.fa farfaduvet:pl.fa chlorobule:pl fragilady:pl bargantua:ea mascaïman:so.te escroco:so.te crocorible:so.te darumarond:fe darumacho:fe maracachi:pl crabicoque:in.ro crabaraque:in.ro baggiguane:te.co baggaïd:te.co cryptéro:ps.vo tutafeh:sp tutankafer:sp carapagos:ea.ro mégapagos:ea.ro arkéapti:ro.vo aéroptéryx:ro.vo miamiasme:po miasmax:po zorua:te zoroark:te chinchidou:no pashmilla:no scrutella:ps mesmérella:ps sidérella:ps nucléos:ps méios:ps symbios:ps couaneton:ea.vo lakmécygne:ea.vo sorbébé:gl sorboul:gl sorbouboul:gl vivaldaim:no.pl haydaim:no.pl emolga:el.vo carabing:in lançargot:in.ac trompignon:pl.po gaulet:pl.po viskuse:ea.sp moyade:ea.sp mamanbo:ea statitik:in.el mygavolt:in.el grindur:pl.ac noacier:pl.ac tic:ac clic:ac cliticlic:ac anchwatt:el lampéroie:el ohmassacre:el lewsor:ps neitram:ps funécire:sp.fe mélancolux:sp.fe lugulabre:sp.fe coupenotte:dr incisache:dr tranchodon:dr polarhume:gl polagriffe:gl hexagel:gl escargaume:in limaspeed:in limonde:so.el kungfouine:co shaofouine:co drakkarmin:dr gringolem:so.sp golemastoc:so.sp scalpion:te.ac scalproie:te.ac frison:no furaiglon:no.vo gueriaigle:no.vo vostourno:te.vo vaututrice:te.vo aflamanoir:fe fermite:in.ac solochi:te.dr diamat:te.dr trioxhydre:te.dr pyronille:in.fe pyrax:in.fe cobaltium:ac.co terrakium:ro.co viridium:pl.co boréas:vo fulguris:el.vo reshiram:dr.fe zekrom:dr.el démétéros:so.vo kyurem:dr.gl keldeo:ea.co meloetta:no.ps genesect:in.ac\n#G6\nmarisson:pl boguérisse:pl blindépique:pl.co feunnec:fe roussil:fe goupelin:fe.ps grenousse:ea croâporal:ea amphinobi:ea.te sapereau:no excavarenne:no.so passerouge:no.vo braisillon:fe.vo flambusard:fe.vo lépidonille:in pérégrain:in prismillon:in.vo hélionceau:fe.no némélios:fe.no flabébé:fa floette:fa florges:fa cabriolaine:pl chevroum:pl pandespiègle:co pandarbare:co.te couafarel:no psystigri:ps mistigrix:ps monorpale:ac.sp dimoclès:ac.sp exagide:ac.sp fluvetin:fa cocotine:fa sucroquin:fa cupcanaille:fa sepiatop:te.ps sepiatroce:te.ps opermine:ro.ea golgopathe:ro.ea venalgue:po.ea kravarech:po.dr flingouste:ea gamblast:ea galvaran:el.no iguolta:el.no ptyranidur:ro.dr rexillius:ro.dr amagara:ro.gl dragmara:ro.gl nymphali:fa brutalibré:co.vo dedenne:el.fa strassie:ro.fa mucuscule:dr colimucus:dr muplodocus:dr trousselin:ac.fa brocélôme:sp.pl desséliande:sp.pl pitrouille:sp.pl banshitrouye:sp.pl grelaçon:gl séracrawl:gl sonistrelle:vo.dr bruyverne:vo.dr xerneas:fa yveltal:te.vo zygarde:dr.so diancie:ro.fa hoopa:ps.sp volcanion:fe.ea\n#G7\nbrindibou:pl.vo efflèche:pl.vo archéduc:pl.sp flamiaou:fe matoufeu:fe félinferno:fe.te otaquin:ea otarlette:ea oratoria:ea.fa picassaut:no.vo piclairon:no.vo bazoucan:no.vo manglouton:no argouste:no larvibule:in chrysapile:in.el lucanon:in.el crabagarre:co crabominable:co.gl plumeline:fe.vo bombydou:in.fa rubombelle:in.fa rocabot:ro lougaroc:ro froussardine:ea vorastérie:po.ea prédastérie:po.ea tiboudet:so bourrinos:so araqua:ea.in tarenbulle:ea.in mimantis:pl floramantis:pl spododo:pl.fa lampignon:pl.fa tritox:po.fe malamandre:po.fe nounourson:no.co chelours:no.co croquine:pl candine:pl sucreine:pl guérilande:fa gouroutan:no.ps quartermac:co sovkipou:in.ea sarmuraï:in.ea bacabouh:sp.so trépassable:sp.so concombaffe:ea silvallié:no météno:ro.vo dodoala:no boumata:fe.dr togedemaru:el.ac mimiqui:sp.fa denticrisse:ea.ps draïeul:no.dr sinistrail:sp.pl bébécaille:dr écaïd:dr.co ékaïser:dr.co tokorico:el.fa tokopiyon:ps.fa tokotoro:pl.fa tokopisco:ea.fa cosmog:ps cosmovum:ps solgaleo:ps.ac lunala:ps.sp zéroïd:ro.po mouscoto:in.co cancrelove:in.co câblifère:el bamboiselle:ac.vo katagami:pl.ac engloutyran:te.dr necrozma:ps magearna:ac.fa marshadow:co.sp vémini:po mandrillon:po.dr pierroteknik:fe.sp zeraora:el meltan:ac melmetal:ac\n#G8\nouistempo:pl badabouin:pl gorythmic:pl flambino:fe lapyro:fe pyrobut:fe larméléon:ea arrozard:ea lézargus:ea rongourmand:no rongrigou:no minisange:vo bleuseille:vo corvaillus:vo.ac larvadar:in coléodôme:in.ps astronelle:in.ps goupilou:te roublenard:te tournicoton:pl blancoton:pl moumouton:no moumouflon:no khélocrok:ea torgamord:ea.ro voltoutou:el fulgudog:el charbi:ro wagomine:ro.fe monthracite:ro.fe verpom:pl.dr pomdrapi:pl.dr dratatin:pl.dr dunaja:so dunaconda:so nigosier:vo.ea toxizap:el.po salarsen:el.po grillepattes:fe.in scolocendre:fe.in poulpaf:co krakos:co théffroi:sp polthégeist:sp bibichut:ps chapotus:ps sorcilence:ps.fa grimalin:te.fa fourbelin:te.fa angoliath:te.fa ixon:te.no embrochet:ea hastacuda:ea berserkatt:ac corayôme:sp palarticho:co glaquette:ps.gl tutétékri:so.sp crèmy:fa charmilly:fa hexadron:co wattapik:el.te frissonille:gl.in beldeneige:gl.in dolman:ro bekaglaçon:gl wimessir:ps.no morpeko:el.te charibari:ac pachyradjah:ac galvagon:el.dr galvagla:el.gl hydragon:ea.dr hydragla:ea.gl duralugon:ac.dr fantyrm:dr.sp dispareptil:dr.sp lanssorien:dr.sp zacian:fa zamazenta:co éthernatos:po.dr wushours:co shifours:co.te zarude:te.pl regieleki:el regidrago:dr blizzeval:gl spectreval:sp sylveroy:ps.pl cerbyllin:no.ps hachécateur:in.ro ursaking:so.no paragruel:ea.sp farfurex:co.po qwilpik:te.po amovénus:fa.vo\n#G9\npoussacha:pl matourgeon:pl miascarade:pl.te chochodile:fe crocogril:fe flâmigator:fe.sp coiffeton:ea canarbello:ea palmaval:ea.co gourmelet:no fragroin:no tissenboule:in filentrappe:in lilliterelle:in gambex:in.te pohm:el pohmotte:el.co pohmarmotte:el.co compagnol:no famignol:no pâtachiot:fa briochien:fa olivini:pl.no olivado:pl.no arboliva:pl.no tapatoès:no.vo selutin:ro amassel:ro gigansel:ro charbambin:fe carmadura:fe.ps malvalame:fe.sp têtampoule:el ampibidou:el zapétrel:el.vo fulgulairo:el.vo grondogue:te dogrino:te gribouraigne:po.no virovent:pl.sp virevorreur:pl.sp terracool:so.pl terracruel:so.pl craparoi:ro pimito:pl scovilain:pl.fe léboulérou:in bérasca:in.ps flotillon:ps cléopsytra:ps forgerette:fa.ac forgella:fa.ac forgelina:fa.ac taupikeau:ea triopikeau:ea lestombaile:vo.te dofin:ea superdofin:ea vrombi:ac.po vrombotor:ac.po motorizard:dr.no ferdeter:ac germéclat:ro.po floréclat:ro.po toutombe:sp tomberro:sp flamenroule:vo.co piétacé:gl balbalèze:gl délestin:ea.ps oyacata:ea nigirigon:dr.ea courrousinge:co.sp terraiste:po.so farigiraf:no.ps deusolourdo:no scalpereur:te.ac fongus:pl.te frigodo:dr.gl cryodo:dr.gl glaivodo:dr.gl mordudor:sp gromago:ac.sp chongjian:te.pl baojian:te.gl dinglu:te.so yuyu:te.fe koraidon:co.dr miraidon:el.dr pomdramour:pl.dr poltchageist:pl.sp théffroyable:pl.sp félicanis:po.co fortusimia:po.ps favianos:po.fa ogerpon:pl pondralugon:ac.dr pomdorochi:pl.dr terapagos:no pêchaminus:po.sp\n#G10\nbroussatif caloulou ogéko\n#FORMES\n# Alola\nrattata:te.no rattatac:te.no raichu:el.ps sabelette:gl.ac sablaireau:gl.ac goupix:gl feunard:gl.fa taupiqueur:so.ac triopikeur:so.ac miaouss:te persian:te racaillou:ro.el gravalanch:ro.el grolem:ro.el tadmorv:po.te grotadmorv:po.te noadkoko:pl.dr ossatueur:fe.sp\n# Galar\nmiaouss:ac ponyta:ps galopa:ps.fa ramoloss:ps flagadoss:po.ps canarticho:co smogogo:po.fa mime:gl.ps artikodin:ps.vo électhor:co.vo sulfura:te.vo roigada:po.ps corayon:sp zigzaton:te.no linéon:te.no darumarond:gl darumacho:gl darumacho:gl.fe darumacho:fe.ps tutafeh:so.sp limonde:so.ac\n# Hisui\ncaninos:fe.ro arcanin:fe.ro voltorbe:el.pl électrode:el.pl typhlosion:fe.sp qwilfish:te.po farfuret:co.po clamiral:ea.te fragilady:pl.co zorua:no.sp zoroark:no.sp gueriaigle:ps.vo colimucus:ac.dr muplodocus:ac.dr séracrawl:gl.ro archéduc:pl.co\n# Paldea\ntauros:co tauros:co.fe tauros:co.ea axoloto:po.so\n# Autres formes et Méga-Évolutions qui changent de type\nogerpon:pl.ea ogerpon:pl.fe ogerpon:pl.ro meloetta:no.co shaymin:pl.vo hoopa:ps.te necrozma:ps.ac necrozma:ps.sp zacian:fa.ac zamazenta:co.ac sylveroy:ps.gl sylveroy:ps.sp cheniselle:in.so cheniselle:in.ac motisma:el.fe motisma:el.ea motisma:el.gl motisma:el.vo motisma:el.pl morphéo:fe morphéo:ea morphéo:gl groudon:so.fe\ndracaufeu:fe.dr mélodelfe:fa.vo pharamp:el.dr altaria:dr.fa absol:te.sp étouraptor:co.vo méganium:pl.fa aligatueur:ea.dr éoko:ps.ac jungko:pl.dr léviator:ea.te lockpin:no.co nanméouïe:no.fa scarabrute:in.vo mewtwo:ps.co golgopathe:ro.co galeking:ac\n#FAM\nbulbizarre herbizarre florizarre\nsalamèche reptincel dracaufeu\ncarapuce carabaffe tortank\nchenipan chrysacier papilusion\naspicot coconfort dardargnan\nroucool roucoups roucarnage\nrattata rattatac\npiafabec rapasdepic\nabo arbok\npichu pikachu raichu\nsabelette sablaireau\nnidoran nidorina nidoqueen nidorino nidoking\nmélo mélofée mélodelfe\ngoupix feunard\ntoudoudou rondoudou grodoudou\nnosferapti nosferalto nostenfer\nmystherbe ortide rafflesia joliflor\nparas parasect\nmimitoss aéromite\ntaupiqueur triopikeur\nmiaouss persian berserkatt\npsykokwak akwakwak\nférosinge colossinge courrousinge\ncaninos arcanin\nptitard têtarte tartard tarpaud\nabra kadabra alakazam\nmachoc machopeur mackogneur\nchétiflor boustiflor empiflor\ntentacool tentacruel\nracaillou gravalanch grolem\nponyta galopa\nramoloss flagadoss roigada\nmagnéti magnéton magnézone\ndoduo dodrio\notaria lamantine\ntadmorv grotadmorv\nkokiyas crustabri\nfantominus spectrum ectoplasma\nonix steelix\nsoporifik hypnomade\nkrabby krabboss\nvoltorbe électrode\nnoeunoeuf noadkoko\nosselait ossatueur\ndebugant kicklee tygnon kapoera\nexcelangue coudlangue\nsmogo smogogo\nrhinocorne rhinoféros rhinastoc\nptiravi leveinard leuphorie\nsaquedeneu bouldeneu\nhypotrempe hypocéan hyporoi\npoissirène poissoroy\nstari staross\nmime glaquette\ninsécateur cizayox hachécateur\nlippouti lippoutou\nélekid élektek élekable\nmagby magmar maganon\nmagicarpe léviator\névoli aquali voltali pyroli mentali noctali phyllali givrali nymphali\nporygon porygon2\namonita amonistar\nkabuto kabutops\ngoinfrex ronflex\nminidraco draco dracolosse\ngermignon macronium méganium\nhéricendre feurisson typhlosion\nkaiminus crocrodil aligatueur\nfouinette fouinar\nhoothoot noarfang\ncoxy coxyclaque\nmimigal migalos\nloupio lanturn\ntogepi togetic togekiss\nnatu xatu\nwattouat lainergie pharamp\nazurill marill azumarill\nmanzaï simularbre\ngranivol floravol cotovol\ncapumain capidextre\ntournegrin héliatronc\nyanma yanmega\naxoloto maraiste terraiste\ncornèbre corboss\nfeuforêve magirêve\nokéoké qulbutoké\npomdepik foretress\nsnubbull granbull\nfarfuret dimoret farfurex\nteddiursa ursaring ursaking\nlimagma volcaropod\nmarcacrin cochignon mammochon\nrémoraid octillery\nbabimanta démanta\nmalosse démolosse\nphanpy donphan\nembrylex ymphect tyranocif\narcko massko jungko\npoussifeu galifeu braségali\ngobou flobio laggron\nmedhyèna grahyèna\nzigzaton linéon\nchenipotte armulys charmillon blindalys papinox\nnénupiot lombre ludicolo\ngrainipiot pifeuil tengalice\nnirondelle hélédelle\ngoélise bekipan\ntarsal kirlia gardevoir gallame\narakdo maskadra\nbalignon chapignon\nparecool vigoroth monaflèmit\nningale ninjask munja\nchuchmur ramboum brouhabam\nmakuhita hariyama\ntarinor tarinorme\nskitty delcatty\ngalekid galegon galeking\nméditikka charmina\ndynavolt élecsprint\nrozbouton rosélia roserade\ngloupti avaltout\ncarvanha sharpedo\nwailmer wailord\nchamallot camérupt\nspoink groret\nkraknoix vibraninf libégon\ncacnea cacturne\ntylton altaria\nbarloche barbicha\nécrapince colhomard\nbalbuto kaorine\nlilia vacilys\nanorith armaldo\nbarpau milobellus\npolichombr branette\nskelénox téraclope noctunoir\nkorillon éoko\nstalgamin oniglali momartik\nobalie phogleur kaimorse\ncoquiperl serpang rosabyss\ndraby drackhaus drattak\nterhal métang métalosse\ntortipouss boskara torterra\nouisticram chimpenfeu simiabraz\ntiplouf prinplouf pingoléon\nétourmi étourvol étouraptor\nkeunotor castorno\ncrikzik mélokrik\nlixy luxio luxray\nkranidos charkos\ndinoclier bastiodon\napitrini apireine\nmustébouée mustéflott\nceribou ceriflor\nsancoki tritosor\nbaudrive grodrive\nlaporeille lockpin\nchaglam chaffreux\nmoufouette moufflair\narchéomire archéodong\ngriknot carmache carchacrok\nriolu lucario\nhippopotas hippodocus\nrapion drascore\ncradopaud coatox\nécayon luminéon\nblizzi blizzaroi\nscorplane scorvol\nvipélierre lianaja majaspic\ngruikui grotichon roitiflam\nmoustillon mateloutre clamiral\nzorua zoroark\nmarisson boguérisse blindépique\nfeunnec roussil goupelin\ngrenousse croâporal amphinobi\nflabébé floette florges\nbrindibou efflèche archéduc\nflamiaou matoufeu félinferno\notaquin otarlette oratoria\nouistempo badabouin gorythmic\nflambino lapyro pyrobut\nlarméléon arrozard lézargus\nwushours shifours\npoussacha matourgeon miascarade\nchochodile crocogril flâmigator\ncoiffeton canarbello palmaval\npohm pohmotte pohmarmotte\ncanarticho palarticho\nqwilfish qwilpik\ncerfrousse cerbyllin\ngirafarig farigiraf\ninsolourdo deusolourdo\ncorayon corayôme\nférosinge colossinge courrousinge\nbargantua paragruel\nvipélierre lianaja majaspic\ngruikui grotichon roitiflam\nmoustillon mateloutre clamiral\nratentif miradar\nponchiot ponchien mastouffe\nchacripan léopardus\nfeuillajou feuiloutan\nflamajou flamoutan\nflotajou flotoutan\nmunna mushana\npoichigeon colombeau déflaisan\nzébibron zéblitz\nnodulithe géolithe gigalithe\nchovsourir rhinolove\nrototaupe minotaupe\ncharpenti ouvrifier bétochef\ntritonde batracné crapustule\nlarveyette couverdure manternel\nvenipatte scobolide brutapode\ndoudouvet farfaduvet\nchlorobule fragilady\nmascaïman escroco crocorible\ndarumarond darumacho\ncrabicoque crabaraque\nbaggiguane baggaïd\ntutafeh tutankafer\ncarapagos mégapagos\narkéapti aéroptéryx\nmiamiasme miasmax\nchinchidou pashmilla\nscrutella mesmérella sidérella\nnucléos méios symbios\ncouaneton lakmécygne\nsorbébé sorboul sorbouboul\nvivaldaim haydaim\ncarabing lançargot\ntrompignon gaulet\nviskuse moyade\nstatitik mygavolt\ngrindur noacier\ntic clic cliticlic\nanchwatt lampéroie ohmassacre\nlewsor neitram\nfunécire mélancolux lugulabre\ncoupenotte incisache tranchodon\npolarhume polagriffe\nescargaume limaspeed\nkungfouine shaofouine\ngringolem golemastoc\nscalpion scalproie scalpereur\nfuraiglon gueriaigle\nvostourno vaututrice\nsolochi diamat trioxhydre\npyronille pyrax\nsapereau excavarenne\npasserouge braisillon flambusard\nlépidonille pérégrain prismillon\nhélionceau némélios\ncabriolaine chevroum\npandespiègle pandarbare\npsystigri mistigrix\nmonorpale dimoclès exagide\nfluvetin cocotine\nsucroquin cupcanaille\nsepiatop sepiatroce\nopermine golgopathe\nvenalgue kravarech\nflingouste gamblast\ngalvaran iguolta\nptyranidur rexillius\namagara dragmara\nmucuscule colimucus muplodocus\nbrocélôme desséliande\npitrouille banshitrouye\ngrelaçon séracrawl\nsonistrelle bruyverne\npicassaut piclairon bazoucan\nmanglouton argouste\nlarvibule chrysapile lucanon\ncrabagarre crabominable\nbombydou rubombelle\nrocabot lougaroc\nvorastérie prédastérie\ntiboudet bourrinos\naraqua tarenbulle\nmimantis floramantis\nspododo lampignon\ntritox malamandre\nnounourson chelours\ncroquine candine sucreine\nbacabouh trépassable\nbébécaille écaïd ékaïser\ncosmog cosmovum solgaleo lunala\nvémini mandrillon\nmeltan melmetal\nrongourmand rongrigou\nminisange bleuseille corvaillus\nlarvadar coléodôme astronelle\ngoupilou roublenard\ntournicoton blancoton\nmoumouton moumouflon\nkhélocrok torgamord\nvoltoutou fulgudog\ncharbi wagomine monthracite\nverpom pomdrapi dratatin pomdramour pomdorochi\ndunaja dunaconda\ntoxizap salarsen\ngrillepattes scolocendre\npoulpaf krakos\nthéffroi polthégeist\nbibichut chapotus sorcilence\ngrimalin fourbelin angoliath\ncrèmy charmilly\nfrissonille beldeneige\ncharibari pachyradjah\nfantyrm dispareptil lanssorien\ngourmelet fragroin\ntissenboule filentrappe\nlilliterelle gambex\ncompagnol famignol\npâtachiot briochien\nolivini olivado arboliva\nselutin amassel gigansel\ncharbambin carmadura malvalame\ntêtampoule ampibidou\nzapétrel fulgulairo\ngrondogue dogrino\nvirovent virevorreur\nterracool terracruel\npimito scovilain\nléboulérou bérasca\nflotillon cléopsytra\nforgerette forgella forgelina\ntaupikeau triopikeau\ndofin superdofin\nvrombi vrombotor\ngerméclat floréclat\ntoutombe tomberro\npiétacé balbalèze\nfrigodo cryodo glaivodo\nmordudor gromago\npoltchageist théffroyable\nduralugon pondralugon\nzigzaton linéon ixon\nembrochet hastacuda\n";
+var DATA = "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";
+(function () {
+  "use strict";
+  /* ---------- Réglages ---------- */
+  // Empreinte SHA-256 du mot de passe (voir le mode d'emploi pour la changer).
+  var MDP_SHA256 = "2adae3124a17c5d40befdc8cf22a8750a5bf490ff6886d0f432197eb614cb57c";
+  // Pages tirées en direct sur Poképédia ; si Poképédia ne répond pas, le jeu utilise les pages intégrées.
+  var LIVE = true;
+  var API = "https://www.pokepedia.fr/api.php";
+  var CATEGORIES = [
+    ["Pokémon", "Pokémon"], ["Capacité", "Capacité"], ["Talent", "Talent"], ["Objet", "Objet"],
+    ["Lieu", "Lieu"], ["Personnage", "Personnage"], ["Mécanisme de jeu", "Mécanisme de jeu"], ["Jeu vidéo", "Jeu"]
+  ];
+
+  var PAGES = decode(DATA);
+  TX.loadLexicon(LEXIQUE);
+  TX.loadDex(POKEDEX);
+  function decode(b64) {
+    var KEY = "Kanto151", bin = atob(b64), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length);
+    return JSON.parse(new TextDecoder("utf-8").decode(bytes));
+  }
+  var $ = function (id) { return document.getElementById(id); };
+  var disp = function (s) { return String(s).replace(/'/g, "’"); };
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+  var plural = function (n, one, many) { return n + " " + (n > 1 ? many : one); };
+  var HEAT = ["", "froid", "tiède", "chaud", "brûlant"];
+
+  var PREFIX = "pokepedantix.v1.";
+  function readLS(k, def) { try { var v = localStorage.getItem(PREFIX + k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
+  function writeLS(k, v) { try { localStorage.setItem(PREFIX + k, JSON.stringify(v)); } catch (e) { /* stockage indisponible */ } }
+
+  function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  var PERM = {};
+  function pageFor(n) {
+    var N = PAGES.length, k = n - 1, cyc = Math.floor(k / N), pos = ((k % N) + N) % N;
+    if (!PERM[cyc]) {
+      var a = [], r = mulberry(cyc * 7919 + 151), i, j, t;
+      for (i = 0; i < N; i++) a.push(i);
+      for (i = N - 1; i > 0; i--) { j = Math.floor(r() * (i + 1)); t = a[i]; a[i] = a[j]; a[j] = t; }
+      PERM[cyc] = a;
+    }
+    return PERM[cyc][pos];
+  }
+
+  var S = { today: TX.dayNumber(new Date()), n: 0, game: null, saved: null, ended: false, lastFound: new Set(), lastG: null, sort: "recent", openLen: null, pool: null, token: 0 };
+
+  /* ---------- Poképédia en direct ---------- */
+  function api(params) {
+    var q = Object.keys(params).map(function (k) { return k + "=" + encodeURIComponent(params[k]); }).join("&");
+    return fetch(API + "?" + q + "&format=json&formatversion=2&origin=*").then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    });
+  }
+  function category(cat) {
+    var out = [], calls = 0;
+    function step(cont) {
+      var p = { action: "query", list: "categorymembers", cmtitle: "Catégorie:" + cat, cmlimit: "500", cmnamespace: "0", cmtype: "page" };
+      if (cont) p.cmcontinue = cont;
+      return api(p).then(function (d) {
+        (d.query && d.query.categorymembers || []).forEach(function (m) { out.push(m.title); });
+        calls++;
+        if (d["continue"] && d["continue"].cmcontinue && calls < 6) return step(d["continue"].cmcontinue);
+        return out;
+      });
+    }
+    return step(null).then(function (r) { return r; }, function () { return null; });
+  }
+  function getPool() {
+    if (!LIVE || !window.fetch) return Promise.resolve(null);
+    var c = readLS("pool", null);
+    if (c && c.t > Date.now() - 7 * 86400000 && c.list.length > 50) return Promise.resolve(c.list);
+    return Promise.all(CATEGORIES.map(function (c) {
+      return category(c[0]).then(function (titles) { return titles ? titles.map(function (t) { return [t, c[1]]; }) : null; });
+    })).then(function (parts) {
+      var complete = parts.every(function (p) { return p !== null; });
+      parts = parts.map(function (p) { return p || []; });
+      var seen = {}, list = [];
+      parts.forEach(function (p) { p.forEach(function (e) {
+        if (seen[e[0]] || /\//.test(e[0]) || /^Liste /.test(e[0])) return;
+        seen[e[0]] = 1; list.push(e);
+      }); });
+      list.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+      // On ne garde la liste que si toutes les catégories ont répondu : sinon on réessaiera au prochain chargement.
+      if (complete && list.length > 50) writeLS("pool", { t: Date.now(), list: list });
+      return list.length > 50 ? list : null;
+    }).catch(function () { return null; });
+  }
+  function fetchPage(title, kind) {
+    return api({ action: "parse", page: title, prop: "text", redirects: "1", disablelimitreport: "1" }).then(function (d) {
+      if (!d.parse || !d.parse.text) throw new Error("page vide");
+      var doc = new DOMParser().parseFromString(d.parse.text, "text/html");
+      doc.querySelectorAll("sup, .mw-editsection, style, script, table, .reference").forEach(function (e) { e.remove(); });
+      var paras = [], words = 0;
+      doc.querySelectorAll(".mw-parser-output > p, .mw-parser-output > ul > li").forEach(function (p) {
+        if (words > 260 || paras.length >= 7) return;
+        var t = p.textContent.replace(/\[\d+\]/g, "").replace(/\s+/g, " ").trim();
+        if (t.length < 25) return;
+        paras.push(t); words += t.split(" ").length;
+      });
+      if (words < 45) throw new Error("page trop courte");
+      var t = d.parse.title;
+      return { id: t, title: t, kind: kind, paras: paras, url: "https://www.pokepedia.fr/" + encodeURIComponent(t.replace(/ /g, "_")) };
+    });
+  }
+  function hash32(str) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12; h = Math.imul(h, 0x297a2d39); h ^= h >>> 15;
+    return h >>> 0;
+  }
+  function livePuzzle(n, pool) {
+    var cached = readLS("puz." + n, null);
+    if (cached) return Promise.resolve(cached);
+    // Chaque page reçoit une note qui ne dépend que de son titre et du numéro du jour.
+    // On prend les meilleures notes : l'ordre ou la taille de la liste n'y changent rien.
+    var ranked = pool.map(function (e) { return { e: e, h: hash32(n + "|" + e[0]) }; })
+      .sort(function (a, b) { return a.h - b.h || (a.e[0] < b.e[0] ? -1 : 1); }).slice(0, 8);
+    var tries = 0;
+    function attempt() {
+      var e = ranked[tries].e;
+      tries++;
+      return fetchPage(e[0], e[1]).catch(function (err) { if (tries < ranked.length) return attempt(); throw err; });
+    }
+    return attempt().then(function (p) { writeLS("puz." + n, p); return p; });
+  }
+  function puzzleFor(n) {
+    var fallback = function () { return PAGES[pageFor(n)]; };
+    if (!S.pool) return Promise.resolve(fallback());
+    return livePuzzle(n, S.pool).catch(fallback);
+  }
+
+  function load(n) {
+    var tok = ++S.token;
+    S.n = n;
+    $("doc").innerHTML = '<p class="empty">Chargement de la page…</p>';
+    $("q").disabled = true; $("go").disabled = true;
+    return puzzleFor(n).then(function (puzzle) { if (tok === S.token) start(n, puzzle); });
+  }
+  function start(n, puzzle) {
+    S.game = new TX.Game(puzzle);
+    S.saved = readLS("p." + n, null);
+    // Partie enregistrée sur une autre page (ex. page de secours) : on repart de zéro.
+    if (!S.saved || (S.saved.id && S.saved.id !== puzzle.id)) S.saved = { guesses: [], ab: false };
+    S.saved.id = puzzle.id;
+    S.lastFound = new Set(); S.lastG = null; S.openLen = null;
+    S.saved.guesses.forEach(function (w) { var r = S.game.propose(w); if (r.status === "ok") S.lastG = r.g; });
+    S.ended = S.game.won || S.saved.ab;
+    if (S.saved.ab) S.game.revealAll();
+    $("q").value = "";
+    setFb(S.ended ? "" : (S.game.guesses.length ? "" : "Astuce : commencez par des petits mots (« le », « de », « est »), puis des mots de l’univers Pokémon (« type », « génération », « capacité »)."));
+    $("q").disabled = S.ended; $("go").disabled = S.ended; $("bGive").hidden = S.ended;
+    renderAll();
+    if (!S.ended && window.matchMedia("(pointer: fine)").matches) $("q").focus({ preventScroll: true });
+  }
+  function save() {
+    S.saved.won = S.game.won; S.saved.wonAt = S.game.wonAt; S.saved.n = S.game.count();
+    writeLS("p." + S.n, S.saved);
+  }
+  function setFb(html) { $("fb").innerHTML = html; }
+
+  function renderAll() { renderHeader(); renderDoc(); renderHist(); renderEnd(); }
+
+  function renderHeader() {
+    $("num").textContent = "Page n°" + S.n + (S.n !== S.today ? " (passée)" : "");
+    var k = $("kind");
+    if (S.ended) { k.hidden = false; k.textContent = S.game.puzzle.kind; } else k.hidden = true;
+  }
+
+  function wordHTML(w) {
+    if (w.found || w.shown) {
+      var cls = "wd" + (S.lastFound.has(w.i) ? " f-new" : "") + (w.shown && !w.found ? " shown" : "");
+      return '<span class="' + cls + '" data-i="' + w.i + '">' + esc(disp(w.s)) + "</span>";
+    }
+    var width = (w.len * 0.62 + 0.3).toFixed(2) + "em";
+    var len = S.openLen === w.i ? '<span class="len">' + plural(w.len, "lettre", "lettres") + "</span>" : "";
+    if (w.best && w.best.score >= 0.3) {
+      var h = TX.heat(w.best.score);
+      return '<span class="m near h' + h + '" data-i="' + w.i + '" style="min-width:' + width + '" title="' + HEAT[h] + '">' + esc(disp(w.best.g)) + len + "</span>";
+    }
+    return '<span class="m" data-i="' + w.i + '" style="width:' + width + '">' + len + "</span>";
+  }
+  function renderDoc() {
+    var html = "";
+    S.game.blocks.forEach(function (b) {
+      var inner = b.toks.map(function (t) { return t.w ? wordHTML(t) : esc(disp(t.s)); }).join("");
+      html += b.kind === "title" ? "<h2>" + inner + "</h2>" : "<p>" + inner + "</p>";
+    });
+    $("doc").innerHTML = html;
+    var g = S.game, tot = g.words.length, f = g.words.filter(function (w) { return w.found; }).length;
+    $("prog").textContent = plural(f, "mot trouvé", "mots trouvés") + " sur " + tot + " (" + Math.round(100 * f / tot) + " %)";
+    if (S.lastFound.size) setTimeout(function () {
+      document.querySelectorAll(".f-new").forEach(function (el) { el.classList.remove("f-new"); });
+    }, 900);
+  }
+  function renderHist() {
+    var list = S.game.guesses.slice();
+    if (S.sort === "recent") list.reverse();
+    else list.sort(function (a, b) { return (b.found > 0) - (a.found > 0) || (b.best || 0) - (a.best || 0); });
+    $("cnt").textContent = S.game.count();
+    if (!list.length) { $("hist").innerHTML = '<li class="empty" style="display:block">Vos mots apparaîtront ici.</li>'; return; }
+    $("hist").innerHTML = list.map(function (e) {
+      var r, cls;
+      if (e.total) { r = e.found ? "+" + e.found : "déjà vu"; cls = "hit"; }
+      else { var h = TX.heat(e.best || 0); r = '<span class="dot h' + h + '"></span>' + (h ? HEAT[h] : "absent"); cls = "miss"; }
+      return '<li' + (e.g === S.lastG ? ' class="last"' : "") + '><span class="n">' + e.n + '</span><span class="w">' + esc(disp(e.g)) + '</span><span class="r ' + cls + '">' + r + "</span></li>";
+    }).join("");
+  }
+  function renderEnd() {
+    var g = S.game, el = $("end");
+    if (!S.ended) { el.innerHTML = ""; return; }
+    var p = g.puzzle, link = '<a href="' + esc(p.url) + '" target="_blank" rel="noopener">Lire « ' + esc(disp(p.title)) + " » sur Poképédia</a>";
+    if (g.won) {
+      el.innerHTML = '<div class="win"><h3>Trouvé : ' + esc(disp(p.title)) + "</h3><p>Vous avez trouvé la page n°" + S.n + " en " + plural(g.wonAt, "coup", "coups") + ".</p><p>" + link + '</p><div class="acts"><button type="button" id="bShare">Copier mon résultat</button><button type="button" id="bReveal">Révéler toute la page</button></div></div>';
+      $("bShare").onclick = share;
+      $("bReveal").onclick = function () { g.revealAll(); renderDoc(); this.remove(); };
+    } else {
+      el.innerHTML = '<div class="win"><h3>C’était : ' + esc(disp(p.title)) + "</h3><p>Page révélée après " + plural(g.count(), "essai", "essais") + ". Une nouvelle page arrive chaque jour à midi.</p><p>" + link + "</p></div>";
+    }
+  }
+  function share() {
+    var g = S.game, f = g.words.filter(function (w) { return w.found; }).length;
+    var txt = "J’ai trouvé la page n°" + S.n + " de Pokédix en " + plural(g.wonAt, "coup", "coups") + " (" + Math.round(100 * f / g.words.length) + " % de la page dévoilée).";
+    var done = function () { $("bShare").textContent = "Résultat copié"; };
+    try { navigator.clipboard.writeText(txt).then(done, function () { prompt("Copiez ce texte :", txt); }); }
+    catch (e) { prompt("Copiez ce texte :", txt); }
+  }
+
+  /* Proposition */
+  $("form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (S.ended) return;
+    var v = $("q").value;
+    if (!v.trim()) return;
+    var words = v.trim().split(/\s+/);
+    if (words.length > 1) { setFb("Un seul mot à la fois."); return; }
+    var r = S.game.propose(v);
+    if (r.status === "invalid") { setFb(esc(r.message)); return; }
+    $("q").value = "";
+    if (r.status === "dup") { S.lastG = r.g; S.lastFound = new Set(); setFb("« <b>" + esc(disp(r.g)) + "</b> » a déjà été proposé."); renderHist(); return; }
+    S.saved.guesses.push(r.g); S.lastG = r.g; S.lastFound = new Set(r.found);
+    var e = r.entry;
+    if (r.found.length) setFb("« <b>" + esc(disp(r.g)) + "</b> » : " + plural(r.found.length, "mot dévoilé", "mots dévoilés") + ".");
+    else if (r.already) setFb("« <b>" + esc(disp(r.g)) + "</b> » est déjà dévoilé.");
+    else if ((e.best || 0) >= 0.3) setFb("« <b>" + esc(disp(r.g)) + "</b> » n’est pas dans la page, mais " + plural(e.nearCount, "mot s’en rapproche", "mots s’en rapprochent") + " (" + HEAT[TX.heat(e.best)] + ").");
+    else setFb("« <b>" + esc(disp(r.g)) + "</b> » n’est pas dans la page.");
+    if (r.win) { S.ended = true; $("q").disabled = true; $("go").disabled = true; $("bGive").hidden = true; setFb("Bravo !"); }
+    save();
+    renderAll();
+    if (r.win) window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  });
+
+  $("doc").addEventListener("click", function (ev) {
+    var m = ev.target.closest(".m");
+    if (!m) return;
+    var i = +m.getAttribute("data-i");
+    S.openLen = S.openLen === i ? null : i;
+    S.lastFound = new Set();
+    renderDoc();
+  });
+  document.querySelectorAll(".seg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      S.sort = b.getAttribute("data-sort");
+      document.querySelectorAll(".seg button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      renderHist();
+    });
+  });
+  $("bGive").addEventListener("click", function () {
+    if (!confirm("Révéler la page et terminer la partie ?")) return;
+    S.saved.ab = true; save();
+    S.ended = true; S.game.revealAll();
+    $("q").disabled = true; $("go").disabled = true; $("bGive").hidden = true; setFb("");
+    renderAll();
+  });
+
+  /* Dialogues */
+  function openDlg(title, html) { $("dlgT").textContent = title; $("dlgB").innerHTML = html; $("dlg").showModal(); }
+  $("dlgX").addEventListener("click", function () { $("dlg").close(); });
+  $("dlg").addEventListener("click", function (ev) { if (ev.target === $("dlg")) $("dlg").close(); });
+  function rules() {
+    openDlg("Comment jouer", "<p>Chaque jour à midi, une page de Poképédia est cachée : Pokémon, attaque, talent, objet, lieu, personnage, jeu… Retrouvez son titre en proposant des mots, un à la fois.</p>" +
+      "<ul><li>Si le mot est dans la page, il se dévoile partout où il apparaît (pluriels et conjugaisons compris).</li>" +
+      "<li>Sinon, les mots cachés qui s’en rapprochent affichent votre proposition, avec une couleur selon la proximité :</li></ul>" +
+      '<div class="chips"><span class="chip" style="background:var(--h1)">froid</span><span class="chip" style="background:var(--h2)">tiède</span><span class="chip" style="background:var(--h3)">chaud</span><span class="chip" style="background:var(--h4)">brûlant</span></div>' +
+      "<p>Touchez un mot caché pour voir son nombre de lettres. La partie est gagnée quand tous les mots du titre sont trouvés.</p>" +
+      "<p>Votre progression reste enregistrée sur cet appareil.</p>");
+  }
+  $("bRules").addEventListener("click", rules);
+  $("bPast").addEventListener("click", function () {
+    var items = "";
+    for (var n = S.today; n >= Math.max(1, S.today - 30); n--) {
+      var sv = readLS("p." + n, null), st = "à jouer";
+      if (sv) st = sv.won ? "trouvée en " + plural(sv.wonAt, "coup", "coups") : sv.ab ? "abandonnée" : plural(sv.n || sv.guesses.length, "essai", "essais");
+      items += '<li><a href="#" data-n="' + n + '">Page n°' + n + (n === S.today ? " (aujourd’hui)" : "") + "</a> : " + st + "</li>";
+    }
+    openDlg("Pages passées", "<ul>" + items + "</ul>");
+    $("dlgB").querySelectorAll("a[data-n]").forEach(function (a) {
+      a.addEventListener("click", function (ev) { ev.preventDefault(); $("dlg").close(); load(+a.getAttribute("data-n")); });
+    });
+  });
+
+  /* Compte à rebours */
+  function tick() {
+    var s = TX.secondsToNext(new Date());
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    $("next").textContent = "Prochaine page dans " + h + " h " + String(m).padStart(2, "0") + " min " + String(sec).padStart(2, "0") + " s";
+    var t = TX.dayNumber(new Date());
+    if (t !== S.today && S.game) { var wasToday = S.n === S.today; S.today = t; if (wasToday) load(t); else renderHeader(); }
+  }
+  function boot() {
+    $("gate").hidden = true;
+    tick(); setInterval(tick, 1000);
+    if (!readLS("seen", false)) { writeLS("seen", true); rules(); }
+    getPool().then(function (pool) { S.pool = pool; return load(S.today); });
+  }
+  function sha256(txt) {
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt)).then(function (b) {
+      return Array.from(new Uint8Array(b)).map(function (x) { return x.toString(16).padStart(2, "0"); }).join("");
+    });
+  }
+  if (readLS("ok", "") === MDP_SHA256) boot();
+  else {
+    $("gate").hidden = false;
+    $("gateForm").addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      sha256($("gateIn").value.trim()).then(function (h) {
+        if (h === MDP_SHA256) { writeLS("ok", h); boot(); }
+        else { $("gateMsg").textContent = "Mot de passe incorrect."; $("gateIn").select(); }
+      });
+    });
+    $("gateIn").focus();
+  }
+})();
+
+</script>
+</body>
+</html>

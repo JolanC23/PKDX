@@ -117,10 +117,11 @@ main { max-width: 1160px; margin: 0 auto; padding: 18px 20px 40px; display: grid
 .doc h2 { font-family: var(--sans); font-size: 2rem; line-height: 1.5; margin: 0 0 14px; font-weight: 800; letter-spacing: -0.01em; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 .doc p { margin: 0 0 14px; }
 .wd { border-radius: 4px; }
-.m { display: inline-block; background: var(--mask); color: transparent; border-radius: 4px; height: 1.15em; vertical-align: -0.18em; position: relative; cursor: pointer; user-select: none; }
-.doc h2 .m { height: 0.95em; vertical-align: -0.08em; }
-.m.near { color: var(--near-fg); font-family: var(--sans); font-size: 0.78em; line-height: 1.5em; height: 1.45em; vertical-align: 0.02em; text-align: center; overflow: hidden; white-space: nowrap; padding: 0 2px; }
-.doc h2 .m.near { font-size: 0.5em; line-height: 1.9em; height: 1.9em; vertical-align: 0.25em; }
+.m { display: inline-block; position: relative; vertical-align: baseline; background: var(--mask); color: transparent; border-radius: 4px; line-height: 1.3; padding: 0 3px; font: inherit; cursor: pointer; user-select: none; white-space: nowrap; }
+.m.near { color: var(--near-fg); text-align: center; }
+.m .t { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m .len { z-index: 2; }
+.m.asia { cursor: default; opacity: 0.6; }
 .m.h1 { background: var(--h1); } .m.h2 { background: var(--h2); } .m.h3 { background: var(--h3); } .m.h4 { background: var(--h4); }
 .m .len { position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%); background: var(--ink); color: var(--card); font-family: var(--sans); font-size: 0.75rem; line-height: 1.3; padding: 2px 6px; border-radius: 5px; white-space: nowrap; pointer-events: none; }
 .f-new { background: var(--found); transition: background-color 1.6s ease; }
@@ -983,14 +984,23 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     var len = S.openLen === w.i ? '<span class="len">' + plural(w.len, "lettre", "lettres") + "</span>" : "";
     if (w.best && w.best.score >= 0.3) {
       var h = TX.heat(w.best.score);
-      return '<span class="m near h' + h + '" data-i="' + w.i + '" style="min-width:' + width + '" title="' + HEAT[h] + '">' + esc(disp(w.best.g)) + len + "</span>";
+      return '<span class="m near h' + h + '" data-i="' + w.i + '" style="min-width:' + width + '" title="' + HEAT[h] + '"><span class="t">' + esc(disp(w.best.g)) + "</span>" + len + "</span>";
     }
-    return '<span class="m" data-i="' + w.i + '" style="width:' + width + '">' + len + "</span>";
+    return '<span class="m" data-i="' + w.i + '" style="width:' + width + '"><span class="t">&#8203;</span>' + len + "</span>";
+  }
+  // Caractères japonais, chinois et coréens : cachés tant que la partie n'est pas finie
+  var ASIA = /[\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uff66-\uff9f]+/g;
+  function plainHTML(s) {
+    var h = esc(disp(s));
+    if (S.ended) return h;
+    return h.replace(ASIA, function (m) {
+      return '<span class="m asia" style="width:' + (m.length * 0.9 + 0.3).toFixed(2) + 'em" aria-hidden="true"><span class="t">&#8203;</span></span>';
+    });
   }
   function renderDoc() {
     var html = "";
     S.game.blocks.forEach(function (b) {
-      var inner = b.toks.map(function (t) { return t.w ? wordHTML(t) : esc(disp(t.s)); }).join("");
+      var inner = b.toks.map(function (t) { return t.w ? wordHTML(t) : plainHTML(t.s); }).join("");
       html += b.kind === "title" ? "<h2>" + inner + "</h2>" : "<p>" + inner + "</p>";
     });
     $("doc").innerHTML = html;
@@ -1058,7 +1068,7 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
   });
 
   $("doc").addEventListener("click", function (ev) {
-    var m = ev.target.closest(".m");
+    var m = ev.target.closest(".m[data-i]");
     if (!m) return;
     var i = +m.getAttribute("data-i");
     S.openLen = S.openLen === i ? null : i;

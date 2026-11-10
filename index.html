@@ -876,9 +876,24 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
   /* ---------- Poképédia en direct ---------- */
   function api(params) {
     var q = Object.keys(params).map(function (k) { return k + "=" + encodeURIComponent(params[k]); }).join("&");
-    return fetch(API + "?" + q + "&format=json&formatversion=2&origin=*").then(function (r) {
-      if (!r.ok) throw new Error("HTTP " + r.status);
+    // Erreur « réseau » = passagère (connexion, serveur, limite de débit) : on réessaie la même page, on ne passe pas à une autre.
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 20000) : null;
+    return fetch(API + "?" + q + "&format=json&formatversion=2&origin=*", ctrl ? { signal: ctrl.signal } : undefined).then(function (r) {
+      clearTimeout(timer);
+      if (!r.ok) throw netErr("HTTP " + r.status);
       return r.json();
+    }, function () { clearTimeout(timer); throw netErr("connexion"); }).then(function (d) {
+      if (d && d.error && !/^(missingtitle|invalidtitle|nosuchpage)$/.test(d.error.code)) throw netErr(d.error.code);
+      return d;
+    });
+  }
+  function netErr(m) { var e = new Error(m); e.net = true; return e; }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function retry(fn, times) {
+    return fn().catch(function (err) {
+      if (!err.net || times <= 1) throw err;
+      return wait(1500).then(function () { return retry(fn, times - 1); });
     });
   }
   function category(cat) {
@@ -889,16 +904,17 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
       return api(p).then(function (d) {
         (d.query && d.query.categorymembers || []).forEach(function (m) { out.push(m.title); });
         calls++;
-        if (d["continue"] && d["continue"].cmcontinue && calls < 6) return step(d["continue"].cmcontinue);
+        if (d["continue"] && d["continue"].cmcontinue && calls < 25) return step(d["continue"].cmcontinue);
         return out;
       });
     }
-    return step(null).then(function (r) { return r; }, function () { return null; });
+    return retry(function () { out = []; calls = 0; return step(null); }, 3).then(function (r) { return r; }, function () { return null; });
   }
   function getPool() {
     if (!LIVE || !window.fetch) return Promise.resolve(null);
     var c = readLS("pool", null);
-    if (c && c.t > Date.now() - 7 * 86400000 && c.list.length > 50) return Promise.resolve(c.list);
+    var day = TX.dayNumber(new Date());
+    if (c && c.day === day && c.list && c.list.length > 50) return Promise.resolve(c.list);
     return Promise.all(CATEGORIES.map(function (c) {
       return category(c[0]).then(function (titles) { return titles ? titles.map(function (t) { return [t, c[1]]; }) : null; });
     })).then(function (parts) {
@@ -906,13 +922,14 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
       parts = parts.map(function (p) { return p || []; });
       var seen = {}, list = [];
       parts.forEach(function (p) { p.forEach(function (e) {
-        if (seen[e[0]] || /\//.test(e[0]) || /^Liste /.test(e[0])) return;
+        if (seen[e[0]] || /\//.test(e[0]) || /^Liste /.test(e[0]) || BAD_TITLE.test(e[0])) return;
         seen[e[0]] = 1; list.push(e);
       }); });
       list.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
       // On ne garde la liste que si toutes les catégories ont répondu : sinon on réessaiera au prochain chargement.
-      if (complete && list.length > 50) writeLS("pool", { t: Date.now(), list: list });
-      return list.length > 50 ? list : null;
+      if (!complete || list.length <= 50) return null;
+      writeLS("pool", { day: day, list: list });
+      return list;
     }).catch(function () { return null; });
   }
   // Texte de remplacement d'une image (symbole Poké, étoiles de rareté…) ; vide si rien d'utile
@@ -935,6 +952,22 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     var kept = parts.filter(function (s) { return !HOLE.test(" " + s.trim()); });
     return kept.join("").replace(/\s+([,.])/g, "$1").replace(/\s{2,}/g, " ").trim();
   }
+  // Pages écartées du jeu (même règle pour tous les joueurs) :
+  // objets de Pokémon Donjon Mystère, homonymies, cartes du JCC, épisodes, personnages de mangas.
+  var BAD_TITLE = /\((?:[^)]*homonymie[^)]*|PiPiPi|manga|[^)]*Adventures[^)]*|La Grande Aventure|Pocket Monsters[^)]*|[^)]*JCC[^)]*)\)|^(?:EP|AG|DP|BW|XY|SL|PM|HZ|JN)\d{2,4}\b|^Épisode\b/i;
+  var BAD_INTRO = [
+    /\bobjets?\b[^.]{0,160}Donjon Myst[èe]re/i,                                   // objets de Donjon Mystère
+    /homonymie|peut (?:faire référence|désigner|renvoyer)|peut correspondre à/i,      // pages d'homonymie
+    /\best une carte\b|\bJCC\b|Jeu de Cartes à Collectionner|\bcarte (?:Pokémon|Dresseur|Énergie)\b[^.]{0,80}\bextension\b/i, // cartes
+    /\b(?:\d+\s*(?:e|ème|er|re)|premier|dernier|ultime)\s+épisode\b|\best un épisode\b|\bépisode (?:de|du) (?:la série|l’anime|l'anime|dessin animé)/i, // épisodes
+    /\bpersonnage\b[^.]{0,160}\b(?:mangas?|série de mangas)\b/i                     // personnages de mangas
+  ];
+  function excluded(p) {
+    // Seule la première phrase compte : une page normale peut citer le JCC ou un manga plus loin.
+    var intro = (((p.paras && p.paras[0]) || "").match(/^[\s\S]*?[.!?](?=\s|$)/) || [(p.paras && p.paras[0]) || ""])[0];
+    if (p.title && BAD_TITLE.test(p.title)) return true;
+    return BAD_INTRO.some(function (re) { return re.test(intro); });
+  }
   function fetchPage(title, kind) {
     return api({ action: "parse", page: title, prop: "text", redirects: "1", disablelimitreport: "1" }).then(function (d) {
       if (!d.parse || !d.parse.text) throw new Error("page vide");
@@ -952,6 +985,7 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
         paras.push(t); words += t.split(" ").length;
       });
       if (words < 45) throw new Error("page trop courte");
+      if (excluded({ title: d.parse.title, paras: paras })) throw new Error("page exclue");
       var t = d.parse.title;
       return { id: t, title: t, kind: kind, paras: paras, url: "https://www.pokepedia.fr/" + encodeURIComponent(t.replace(/ /g, "_")) };
     });
@@ -964,31 +998,53 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
   }
   function livePuzzle(n, pool) {
     var cached = readLS("puz2." + n, null);
-    if (cached) return Promise.resolve(cached);
+    if (cached && !excluded(cached)) return Promise.resolve(cached);
     // Chaque page reçoit une note qui ne dépend que de son titre et du numéro du jour.
     // On prend les meilleures notes : l'ordre ou la taille de la liste n'y changent rien.
     var ranked = pool.map(function (e) { return { e: e, h: hash32(n + "|" + e[0]) }; })
-      .sort(function (a, b) { return a.h - b.h || (a.e[0] < b.e[0] ? -1 : 1); }).slice(0, 8);
+      .sort(function (a, b) { return a.h - b.h || (a.e[0] < b.e[0] ? -1 : 1); }).slice(0, 20);
     var tries = 0;
     function attempt() {
       var e = ranked[tries].e;
       tries++;
-      return fetchPage(e[0], e[1]).catch(function (err) { if (tries < ranked.length) return attempt(); throw err; });
+      // Page inutilisable pour tout le monde (trop courte, absente) : candidate suivante.
+      // Souci de connexion : on réessaie la MÊME page, sinon on abandonne sans changer de page.
+      return retry(function () { return fetchPage(e[0], e[1]); }, 4).catch(function (err) {
+        if (!err.net && tries < ranked.length) return attempt();
+        throw err;
+      });
     }
     return attempt().then(function (p) { writeLS("puz2." + n, p); return p; });
   }
   function puzzleFor(n) {
     var fallback = function () { return PAGES[pageFor(n)]; };
-    if (!S.pool) return Promise.resolve(fallback());
-    return livePuzzle(n, S.pool).catch(fallback);
+    if (!LIVE || !window.fetch) return Promise.resolve(fallback());
+    var cached = readLS("puz2." + n, null);
+    if (cached && !excluded(cached)) return Promise.resolve(cached);
+    var poolP = S.pool ? Promise.resolve(S.pool) : getPool().then(function (p) { S.pool = p; return p; });
+    return poolP.then(function (pool) {
+      if (!pool) throw netErr("liste");
+      return livePuzzle(n, pool);
+    });
+  }
+  function showLoadError(n) {
+    $("doc").innerHTML = '<p class="empty">Impossible de joindre Poképédia pour charger la page n°' + n +
+      '. Vérifiez votre connexion puis réessayez : tout le monde doit avoir la même page.</p>' +
+      '<p><button type="button" class="ghost" id="bRetry">Réessayer</button> <button type="button" class="ghost" id="bFallback">Jouer une page de secours</button></p>' +
+      '<p class="empty">La page de secours ne sera pas la même que celle des autres joueurs.</p>';
+    $("bRetry").onclick = function () { load(n); };
+    $("bFallback").onclick = function () { start(n, PAGES[pageFor(n)]); };
   }
 
   function load(n) {
     var tok = ++S.token;
-    S.n = n;
+    S.n = n; S.game = null; S.ended = false;
     $("doc").innerHTML = '<p class="empty">Chargement de la page…</p>';
-    $("q").disabled = true; $("go").disabled = true;
-    return puzzleFor(n).then(function (puzzle) { if (tok === S.token) start(n, puzzle); });
+    $("q").disabled = true; $("go").disabled = true; $("bGive").hidden = true;
+    $("end").innerHTML = ""; $("hints").innerHTML = ""; $("hist").innerHTML = ""; $("cnt").textContent = "0"; $("prog").textContent = "";
+    $("kind").hidden = true; $("num").textContent = "Page n°" + n + (n !== S.today ? " (passée)" : "");
+    return puzzleFor(n).then(function (puzzle) { if (tok === S.token) start(n, puzzle); },
+      function () { if (tok === S.token) showLoadError(n); });
   }
   function start(n, puzzle) {
     S.game = new TX.Game(puzzle);
@@ -1017,13 +1073,13 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
   /* Indices : un nouveau tous les 50 mots proposés */
   var HINT_AT = [50, 100, 150];
   function titlePattern(keep) {
-    return esc(disp(S.game.puzzle.title)).replace(/[A-Za-zÀ-ÖØ-öø-ÿŒœ]+/g, function (w) {
+    return esc(disp(S.game.puzzle.title).replace(/[A-Za-zÀ-ÖØ-öø-ÿŒœ]+/g, function (w) {
       var k = keep(w.length);
       return w.slice(0, k) + new Array(w.length - k + 1).join("_");
-    });
+    }));
   }
   function hintText(i) {
-    var p = S.game.puzzle, letters = (p.title.match(/[A-Za-zÀ-ÖØ-öø-ÿŒœ]/g) || []).length;
+    var p = S.game.puzzle;
     if (i === 0) return "Catégorie : <b>" + esc(p.kind || "page Poképédia") + "</b>";
     if (i === 1) return "Première lettre : <span class=\"pattern\">" + esc((p.title.match(/[A-Za-zÀ-ÖØ-öø-ÿŒœ0-9]/) || [""])[0].toUpperCase()) + "</span>";
     return "La moitié des lettres : <span class=\"pattern\">" + titlePattern(function (n) { return Math.ceil(n / 2); }) + "</span>";
@@ -1116,7 +1172,7 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
       el.innerHTML = '<div class="win"><h3>C’était : ' + esc(disp(p.title)) + "</h3><p>Page révélée après " + plural(g.count(), "essai", "essais") + ". Vous pouvez masquer la page et continuer à proposer des mots. Une nouvelle page arrive chaque jour à midi.</p><p>" + link + '</p><div class="acts">' + toggle + "</div></div>";
     }
     $("bReveal").onclick = function () {
-      S.showAll = !S.showAll; S.saved.show = S.showAll; save(); S.lastFound = new Set(); S.openLen = null;
+      S.showAll = !S.showAll; S.saved.show = S.showAll; save(); S.openLen = null;
       renderDoc(); this.textContent = S.showAll ? "Masquer la page" : "Révéler toute la page";
     };
   }
@@ -1131,6 +1187,7 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
   /* Proposition */
   $("form").addEventListener("submit", function (ev) {
     ev.preventDefault();
+    if (!S.game) return;
     var v = $("q").value;
     if (!v.trim()) return;
     var words = v.trim().split(/\s+/);
@@ -1154,29 +1211,27 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
 
   $("doc").addEventListener("click", function (ev) {
     var m = ev.target.closest(".m[data-i]");
-    if (!m) return;
+    if (!m || !S.game) return;
     var i = +m.getAttribute("data-i");
     S.openLen = S.openLen === i ? null : i;
-    S.lastFound = new Set();
     renderDoc();
   });
   document.querySelectorAll(".seg button").forEach(function (b) {
     b.addEventListener("click", function () {
       S.sort = b.getAttribute("data-sort");
       document.querySelectorAll(".seg button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
-      renderHist();
+      if (S.game) renderHist();
     });
   });
   $("bGive").addEventListener("click", function () {
-    if (!confirm("Révéler la page et terminer la partie ?")) return;
-    S.saved.ab = true; save();
-    S.ended = true; S.showAll = true; S.saved.show = true; save();
+    if (!S.game || !confirm("Révéler la page et terminer la partie ?")) return;
+    S.saved.ab = true; S.ended = true; S.showAll = true; S.saved.show = true; save();
     $("bGive").hidden = true; setFb("");
     renderAll();
   });
 
   /* Dialogues */
-  function openDlg(title, html) { $("dlgT").textContent = title; $("dlgB").innerHTML = html; $("dlg").showModal(); }
+  function openDlg(title, html) { $("dlgT").textContent = title; $("dlgB").innerHTML = html; if (!$("dlg").open) $("dlg").showModal(); }
   $("dlgX").addEventListener("click", function () { $("dlg").close(); });
   $("dlg").addEventListener("click", function (ev) { if (ev.target === $("dlg")) $("dlg").close(); });
   function rules() {
@@ -1208,13 +1263,19 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
     $("next").textContent = "Prochaine page dans " + h + " h " + String(m).padStart(2, "0") + " min " + String(sec).padStart(2, "0") + " s";
     var t = TX.dayNumber(new Date());
-    if (t !== S.today && S.game) { var wasToday = S.n === S.today; S.today = t; if (wasToday) load(t); else renderHeader(); }
+    if (t !== S.today) {
+      var wasToday = S.n === S.today; S.today = t;
+      if (wasToday) load(t); else if (S.game) renderHeader();
+    }
   }
+  var booted = false;
   function boot() {
+    if (booted) return;
+    booted = true;
     $("gate").hidden = true;
     tick(); setInterval(tick, 1000);
     if (!readLS("seen", false)) { writeLS("seen", true); rules(); }
-    getPool().then(function (pool) { S.pool = pool; return load(S.today); });
+    load(S.today);
   }
   function sha256(txt) {
     return crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt)).then(function (b) {
@@ -1226,10 +1287,11 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     $("gate").hidden = false;
     $("gateForm").addEventListener("submit", function (ev) {
       ev.preventDefault();
+      if (!window.crypto || !crypto.subtle) { $("gateMsg").textContent = "Navigateur trop ancien : ouvrez le jeu dans un navigateur à jour."; return; }
       sha256($("gateIn").value.trim()).then(function (h) {
         if (h === MDP_SHA256) { writeLS("ok", h); boot(); }
         else { $("gateMsg").textContent = "Mot de passe incorrect."; $("gateIn").select(); }
-      });
+      }, function () { $("gateMsg").textContent = "Vérification impossible : réessayez."; });
     });
     $("gateIn").focus();
   }

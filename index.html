@@ -716,9 +716,25 @@ var TX = (function () {
   };
   // Indices des mots dévoilés correspondant à une proposition (pour la surbrillance)
   Game.prototype.matchIndices = function (g) {
-    var gi = info(g), idxs = (this.byKey.get(gi.key) || []).slice(), self = this;
+    var self = this;
+    return this.idxFor(g, info(g)).filter(function (i) { return self.words[i].found; });
+  };
+  // Petits mots regroupés : proposer l'un révèle aussi les autres
+  var GROUPS = {};
+  [["le", "la", "l'"], ["un", "une"], ["de", "du", "d'"], ["ce", "c'"], ["à", "au", "aux"]].forEach(function (grp) {
+    grp.forEach(function (k) { GROUPS[k] = grp; });
+  });
+  function groupKeys(key) { return GROUPS[key] || [key]; }
+  Game.prototype.idxFor = function (g, gi) {
+    var self = this, idxs = [];
+    groupKeys(gi.key).forEach(function (k) { idxs = idxs.concat(self.byKey.get(k) || []); });
     if (/^[a-z]'$/.test(g)) idxs = idxs.concat(this.byKey.get(g.slice(0, -1)) || []);
-    return idxs.filter(function (i) { return self.words[i].found; });
+    return idxs.filter(function (i, p) { return idxs.indexOf(i) === p; });
+  };
+  Game.prototype.revealKey = function (key) {
+    var self = this, found = [];
+    (this.byKey.get(key) || []).forEach(function (i) { var w = self.words[i]; if (!w.found) { w.found = true; found.push(i); } });
+    return found;
   };
   Game.prototype.propose = function (input) {
     var n = normalizeGuess(input);
@@ -727,9 +743,7 @@ var TX = (function () {
     if (this.seen.has(g)) return { status: "dup", g: g };
     this.seen.add(g);
     var gi = info(g);
-    var idxs = (this.byKey.get(gi.key) || []).slice();
-    // Lettre seule (« l », « d », « c »…) : révèle la forme élidée ET la lettre isolée (ex. « note D »)
-    if (/^[a-z]'$/.test(g)) idxs = idxs.concat(this.byKey.get(g.slice(0, -1)) || []);
+    var idxs = this.idxFor(g, gi);
     var found = [], self = this;
     idxs.forEach(function (i) {
       var w = self.words[i];
@@ -749,8 +763,9 @@ var TX = (function () {
   Game.prototype.scoreGuess = function (entry, gi) {
     gi = gi || info(entry.g);
     var ai = this.ai.get(gi.key), self = this, best = 0, near = 0, changed = [];
+    var own = groupKeys(gi.key);
     this.byKey.forEach(function (idxs, key) {
-      if (key === gi.key) return;
+      if (own.indexOf(key) >= 0) return;
       var w = self.words[idxs[0]];
       var s = similarity(gi, w, ai);
       if (s >= 0.3) {
@@ -837,8 +852,13 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
   var API = "https://www.pokepedia.fr/api.php";
   var CATEGORIES = [
     ["Pokémon", "Pokémon"], ["Capacité", "Capacité"], ["Talent", "Talent"], ["Objet", "Objet"],
-    ["Lieu", "Lieu"], ["Personnage", "Personnage"], ["Mécanisme de jeu", "Mécanisme de jeu"], ["Jeu vidéo", "Jeu"]
+    ["Lieu", "Lieu"], ["Personnage", "Personnage"], ["Mécanisme de jeu", "Mécanisme de jeu"], ["Jeu vidéo", "Jeu"],
+    ["Baie", "Objet"], ["Ville", "Lieu"], ["Route", "Lieu"], ["Arène", "Lieu"], ["Champion d'Arène", "Personnage"],
+    ["Professeur", "Personnage"], ["Type", "Mécanisme de jeu"], ["Équipe criminelle", "Personnage"]
   ];
+  // Nouveau tirage (sans répétition, un jour sur deux un Pokémon) à partir de cette page
+  var SWITCH = 13;
+  var KNOWN_USED = ["Échantillon", "Caratroc", "Arceus", "Flobiocarte"];
 
   var PAGES = decode(DATA);
   TX.loadLexicon(LEXIQUE);
@@ -996,13 +1016,96 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12; h = Math.imul(h, 0x297a2d39); h ^= h >>> 15;
     return h >>> 0;
   }
+  /* ---------- Tirage de la page du jour ----------
+     Toutes les pages Pokémon viennent du Pokédex intégré (≈ 1 050 pages), les autres des catégories de Poképédia.
+     Chaque page reçoit une note qui ne dépend que de son titre et du numéro du jour : même résultat sur tous les appareils.
+     Un jour sur deux est un jour « Pokémon ». Les pages tirées les jours précédents sont exclues : pas de répétition. */
+  var POKE_TITLES = null;
+  var SPECIAL_TITLES = { mime: "M. Mime", glaquette: "M. Glaquette", fongus: "Fongus-Furie" };
+  var EXTRA_POKE = ["Ho-Oh", "Porygon-Z", "Mime Jr.", "Type:0", "Ama-Ama", "Tag-Tag", "Nidoran♀", "Nidoran♂",
+    "Fort-Ivoire", "Hurle-Queue", "Flotte-Mèche", "Rampe-Ailes", "Pelage-Sablé", "Roue-de-Fer", "Hotte-de-Fer",
+    "Paume-de-Fer", "Têtes-de-Fer", "Mite-de-Fer", "Épine-de-Fer", "Rugit-Lune", "Garde-de-Fer", "Serpente-Eau",
+    "Vert-de-Fer", "Feu-Perçant", "Ire-Foudre", "Roc-de-Fer", "Chef-de-Fer"];
+  function pokeTitles() {
+    if (POKE_TITLES) return POKE_TITLES;
+    var out = [], mode = "";
+    POKEDEX.split("\n").forEach(function (line) {
+      line = line.trim();
+      if (/^#G\d+/.test(line)) { mode = "dex"; return; }
+      if (line[0] === "#") { mode = ""; return; }
+      if (mode !== "dex" || !line) return;
+      line.split(/\s+/).forEach(function (e) {
+        var n = e.split(":")[0];
+        if (n === "nidoran") return;
+        out.push(SPECIAL_TITLES[n] || n.charAt(0).toUpperCase() + n.slice(1));
+      });
+    });
+    POKE_TITLES = out.concat(EXTRA_POKE).map(function (t) { return [t, "Pokémon"]; });
+    return POKE_TITLES;
+  }
+  function splitPool(pool) {
+    var poke = pokeTitles(), isPoke = {};
+    poke.forEach(function (e) { isPoke[e[0]] = 1; });
+    var others = pool.filter(function (e) { return !isPoke[e[0]] && e[1] !== "Pokémon"; });
+    return { poke: poke, others: others.length ? others : poke, full: pool };
+  }
+  function isPokeDay(d) { return hash32("classe|" + d) % 2 === 0; }
+  // Les k meilleures notes du jour d dans la liste, hors titres déjà utilisés
+  function topK(list, d, k, used) {
+    var best = [];
+    for (var i = 0; i < list.length; i++) {
+      var t = list[i][0];
+      if (used && used[t]) continue;
+      var h = hash32(d + "|" + t);
+      if (best.length < k || h < best[best.length - 1].h) {
+        best.push({ e: list[i], h: h });
+        best.sort(function (a, b) { return a.h - b.h || (a.e[0] < b.e[0] ? -1 : 1); });
+        if (best.length > k) best.pop();
+      }
+    }
+    return best;
+  }
+  var USED_MEMO = { key: "", used: null, upTo: 0 };
+  function usedBefore(n, parts) {
+    var memoKey = parts.full.length + "|" + parts.others.length;
+    if (!USED_MEMO.used) { // calcul déjà fait les jours précédents sur cet appareil : on le reprend
+      var st = readLS("used", null);
+      if (st && st.key === memoKey && st.upTo <= n) {
+        var u0 = {}; st.list.forEach(function (t) { u0[t] = 1; });
+        USED_MEMO = { key: memoKey, used: u0, upTo: st.upTo };
+      }
+    }
+    if (USED_MEMO.key !== memoKey || USED_MEMO.upTo > n) USED_MEMO = { key: memoKey, used: null, upTo: 0 };
+    var used = USED_MEMO.used, d = USED_MEMO.upTo;
+    if (!used) {
+      used = {}; KNOWN_USED.forEach(function (t) { used[t] = 1; });
+      for (d = 1; d < Math.min(n, SWITCH); d++) topK(parts.full, d, 3, null).forEach(function (c) { used[c.e[0]] = 1; });
+      d = SWITCH;
+    }
+    for (; d < n; d++) {
+      var poke = isPokeDay(d), list = poke ? parts.poke : parts.others;
+      var picks = topK(list, d, poke ? 2 : 3, used);
+      if (!picks.length) { // toute la liste a déjà servi : on recommence un cycle pour cette catégorie
+        list.forEach(function (e) { delete used[e[0]]; });
+        picks = topK(list, d, poke ? 2 : 3, used);
+      }
+      picks.forEach(function (c) { used[c.e[0]] = 1; });
+    }
+    USED_MEMO = { key: memoKey, used: used, upTo: n };
+    if (n === TX.dayNumber(new Date())) writeLS("used", { key: memoKey, upTo: n, list: Object.keys(used) });
+    return used;
+  }
+  function candidatesFor(n, pool) {
+    var parts = splitPool(pool);
+    if (n < SWITCH) return topK(parts.full, n, 20, null);
+    var used = usedBefore(n, parts), list = isPokeDay(n) ? parts.poke : parts.others;
+    var c = topK(list, n, 20, used);
+    return c.length ? c : topK(list, n, 20, null);
+  }
   function livePuzzle(n, pool) {
     var cached = readLS("puz2." + n, null);
     if (cached && !excluded(cached)) return Promise.resolve(cached);
-    // Chaque page reçoit une note qui ne dépend que de son titre et du numéro du jour.
-    // On prend les meilleures notes : l'ordre ou la taille de la liste n'y changent rien.
-    var ranked = pool.map(function (e) { return { e: e, h: hash32(n + "|" + e[0]) }; })
-      .sort(function (a, b) { return a.h - b.h || (a.e[0] < b.e[0] ? -1 : 1); }).slice(0, 20);
+    var ranked = candidatesFor(n, pool);
     var tries = 0;
     function attempt() {
       var e = ranked[tries].e;
@@ -1054,6 +1157,7 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     S.saved.id = puzzle.id;
     S.lastFound = new Set(); S.lastG = null; S.openLen = null;
     S.saved.guesses.forEach(function (w) { var r = S.game.propose(w); if (r.status === "ok") S.lastG = r.g; });
+    applyHints();
     S.ended = S.game.won || S.saved.ab;
     S.showAll = S.saved.show !== undefined ? !!S.saved.show : !!S.saved.ab;
     $("q").value = "";
@@ -1070,35 +1174,79 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
 
   function renderAll() { renderHeader(); renderDoc(); renderHist(); renderEnd(); renderHints(); }
 
-  /* Indices : un nouveau tous les 50 mots proposés */
-  var HINT_AT = [50, 100, 150];
-  function titlePattern(keep) {
-    return esc(disp(S.game.puzzle.title).replace(/[A-Za-zÀ-ÖØ-öø-ÿŒœ]+/g, function (w) {
-      var k = keep(w.length);
-      return w.slice(0, k) + new Array(w.length - k + 1).join("_");
-    }));
+  /* Indices : tous les 25 mots proposés, on peut dévoiler un mot significatif de la page (toutes ses occurrences).
+     L'ordre des mots-indices est le même pour tous : les plus fréquents d'abord. Jamais un mot du titre. */
+  var HINT_EVERY = 25;
+  var NOT_SIGNIFICANT = new Set(("très plus moins aussi bien encore déjà toujours jamais souvent ainsi alors puis ensuite enfin " +
+    "seulement également notamment beaucoup peu trop assez tout tous toute toutes même non oui ne pas y en où dont lorsque " +
+    "quand comme si mais donc or ni car que qui quoi cela ceci ça celui celle ceux celles leur leurs son sa ses mon ma mes " +
+    "ton ta tes notre nos votre vos il elle ils elles on nous vous je tu se soi lui eux cet cette ces lors après avant " +
+    "pendant depuis selon entre contre parmi via certains certaines plusieurs autre autres chaque quelque quelques ici là " +
+    "dès jusqu lorsqu puisqu quoique tandis cependant toutefois pourtant néanmoins environ près loin dessus dessous " +
+    "v:être v:avoir v:pouvoir v:devoir v:faire v:aller").split(" "));
+  function plainKey(k) { return TX.stripAcc(String(k).replace(/^v:/, "")).toLowerCase(); }
+  function hintOrder() {
+    var g = S.game;
+    if (g._hintOrder) return g._hintOrder;
+    var titleKeys = g.titleWords.map(function (w) { return plainKey(w.key); });
+    var titleRaw = g.titleWords.map(function (w) { return plainKey(w.s); });
+    function nearTitle(k) {
+      var p = plainKey(k);
+      return titleKeys.concat(titleRaw).some(function (t) {
+        if (t === p) return true;
+        var n = 0; while (n < t.length && n < p.length && t[n] === p[n]) n++;
+        return n >= 5 || (p.length >= 4 && t.indexOf(p) >= 0) || (t.length >= 4 && p.indexOf(t) >= 0);
+      });
+    }
+    var list = [];
+    g.byKey.forEach(function (idxs, key) {
+      var w = g.words[idxs[0]];
+      if (TX.FUNC.has(key) || NOT_SIGNIFICANT.has(key) || NOT_SIGNIFICANT.has(TX.low(w.s))) return;
+      if (w.func || TX.isNum(w.s) || w.s.length < 3 || nearTitle(key)) return;
+      if (idxs.some(function (i) { return g.words[i].title; })) return;
+      list.push({ key: key, n: idxs.length, h: hash32(g.puzzle.id + "|" + key) });
+    });
+    list.sort(function (a, b) { return b.n - a.n || a.h - b.h; });
+    g._hintOrder = list.map(function (x) { return x.key; });
+    return g._hintOrder;
   }
-  function hintText(i) {
-    var p = S.game.puzzle;
-    if (i === 0) return "Catégorie : <b>" + esc(p.kind || "page Poképédia") + "</b>";
-    if (i === 1) return "Première lettre : <span class=\"pattern\">" + esc((p.title.match(/[A-Za-zÀ-ÖØ-öø-ÿŒœ0-9]/) || [""])[0].toUpperCase()) + "</span>";
-    return "La moitié des lettres : <span class=\"pattern\">" + titlePattern(function (n) { return Math.ceil(n / 2); }) + "</span>";
+  function nextHintKey() {
+    var g = S.game, order = hintOrder();
+    for (var i = 0; i < order.length; i++) {
+      if ((g.byKey.get(order[i]) || []).some(function (j) { return !g.words[j].found; })) return order[i];
+    }
+    return null;
+  }
+  function applyHints() {
+    (S.saved.hintKeys || []).forEach(function (k) { S.game.revealKey(k); });
+  }
+  function useHint() {
+    var key = nextHintKey();
+    if (!key) { setFb("Plus aucun mot à dévoiler en indice."); return; }
+    var found = S.game.revealKey(key);
+    S.saved.hintKeys = (S.saved.hintKeys || []).concat([key]); save();
+    S.lastFound = new Set(found); S.lastG = null; S.scrollHl = true;
+    setFb("Indice : « <b>" + esc(disp(S.game.words[found[0]].s)) + "</b> » dévoilé (" + plural(found.length, "fois", "fois") + ").");
+    renderAll();
   }
   function renderHints() {
-    var el = $("hints"), n = S.game.count(), seen = S.saved.hints || 0, html = "<h2>Indices</h2>";
-    for (var i = 0; i < seen; i++) html += '<p class="hint">Indice ' + (i + 1) + " : " + hintText(i) + "</p>";
-    if (seen < HINT_AT.length) {
-      var need = HINT_AT[seen];
-      if (n >= need) html += '<button type="button" class="ghost" id="bHint">Voir l’indice ' + (seen + 1) + "</button>";
-      else {
-        var prev = seen ? HINT_AT[seen - 1] : 0;
-        html += "<p>Indice " + (seen + 1) + " dans " + plural(need - n, "mot", "mots") + ".</p>" +
-          '<div class="hint-bar"><span style="width:' + Math.round(100 * (n - prev) / (need - prev)) + '%"></span></div>';
-      }
+    var el = $("hints"), n = S.game.count(), used = (S.saved.hintKeys || []).length;
+    var earned = Math.floor(n / HINT_EVERY), avail = earned - used, html = "<h2>Indices</h2>";
+    if (used) html += "<p>" + plural(used, "mot dévoilé", "mots dévoilés") + " en indice : " +
+      S.saved.hintKeys.map(function (k) {
+        var i = (S.game.byKey.get(k) || [])[0];
+        return "<b>" + esc(disp(i === undefined ? k : S.game.words[i].s)) + "</b>";
+      }).join(", ") + ".</p>";
+    if (avail > 0 && nextHintKey()) {
+      html += '<button type="button" class="ghost" id="bHint">Dévoiler un mot' + (avail > 1 ? " (" + avail + " disponibles)" : "") + "</button>";
+    } else {
+      var left = HINT_EVERY - (n % HINT_EVERY);
+      html += "<p>Prochain indice dans " + plural(left, "mot", "mots") + ".</p>" +
+        '<div class="hint-bar"><span style="width:' + Math.round(100 * (n % HINT_EVERY) / HINT_EVERY) + '%"></span></div>';
     }
     el.innerHTML = html;
     var b = $("bHint");
-    if (b) b.onclick = function () { S.saved.hints = seen + 1; save(); renderHints(); };
+    if (b) b.onclick = useHint;
   }
 
   function renderHeader() {
@@ -1240,7 +1388,7 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
       "<li>Sinon, les mots cachés qui s’en rapprochent affichent votre proposition, avec une couleur selon la proximité :</li></ul>" +
       '<div class="chips"><span class="chip" style="color:var(--t1)">froid</span><span class="chip" style="color:var(--t2)">tiède</span><span class="chip" style="color:var(--t3)">chaud</span><span class="chip" style="color:var(--t4)">brûlant</span></div>' +
       "<p>Touchez un mot caché pour voir son nombre de lettres. La partie est gagnée quand tous les mots du titre sont trouvés.</p>" +
-      "<p>Le dernier mot proposé est surligné en vert dans la page. Un indice se débloque à 50, 100 et 150 mots proposés.</p>" +
+      "<p>Le dernier mot proposé est surligné en vert dans la page. Tous les 25 mots proposés, vous pouvez dévoiler un mot de la page en indice.</p>" +
       "<p>Votre progression reste enregistrée sur cet appareil.</p>");
   }
   $("bRules").addEventListener("click", rules);

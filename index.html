@@ -1049,7 +1049,24 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     var others = pool.filter(function (e) { return !isPoke[e[0]] && e[1] !== "Pokémon"; });
     return { poke: poke, others: others.length ? others : poke, full: pool };
   }
-  function isPokeDay(d) { return hash32("classe|" + d) % 2 === 0; }
+  // Pages 13 à 15 : 1 jour sur 2. À partir de la page 16 : 2 jours sur 3 en moyenne (tirage au hasard, identique pour tous),
+  // avec au plus 2 jours d'affilée sans Pokémon : le 3e est forcément un Pokémon.
+  var POKE_2_3_FROM = 16, MAX_SANS_POKE = 2, POKE_MEMO = [];
+  var FORCED_POKE = { 15: true }; // page n°15 remplacée par une page Pokémon
+  function isPokeDay(d) {
+    if (FORCED_POKE[d]) return true;
+    if (d < POKE_2_3_FROM) return hash32("classe|" + d) % 2 === 0;
+    for (var k = POKE_2_3_FROM; k <= d; k++) {
+      if (POKE_MEMO[k] !== undefined) continue;
+      var poke = hash32("classe3|" + k) % 3 !== 0, run = 0;
+      for (var j = k - 1; j >= k - MAX_SANS_POKE && j >= 1; j--) {
+        if (FORCED_POKE[j] || (j < POKE_2_3_FROM ? hash32("classe|" + j) % 2 === 0 : POKE_MEMO[j])) break;
+        run++;
+      }
+      POKE_MEMO[k] = poke || run >= MAX_SANS_POKE;
+    }
+    return POKE_MEMO[d];
+  }
   // Les k meilleures notes du jour d dans la liste, hors titres déjà utilisés
   function topK(list, d, k, used) {
     var best = [];
@@ -1095,6 +1112,7 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     if (n === TX.dayNumber(new Date())) writeLS("used", { key: memoKey, upTo: n, list: Object.keys(used) });
     return used;
   }
+  function staleType(p, n) { return n >= SWITCH && isPokeDay(n) && p.kind !== "Pokémon"; }
   function candidatesFor(n, pool) {
     var parts = splitPool(pool);
     if (n < SWITCH) return topK(parts.full, n, 20, null);
@@ -1104,7 +1122,7 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
   }
   function livePuzzle(n, pool) {
     var cached = readLS("puz2." + n, null);
-    if (cached && !excluded(cached)) return Promise.resolve(cached);
+    if (cached && !excluded(cached) && !staleType(cached, n)) return Promise.resolve(cached);
     var ranked = candidatesFor(n, pool);
     var tries = 0;
     function attempt() {
@@ -1123,7 +1141,7 @@ var DATA = "EGsVVgZVFwtpEV9WQxNeWCUFTE5NZVRdLg8aVkMTQVg/DQtWVRNmRSoVBx9NHRdEOQ1M
     var fallback = function () { return PAGES[pageFor(n)]; };
     if (!LIVE || !window.fetch) return Promise.resolve(fallback());
     var cached = readLS("puz2." + n, null);
-    if (cached && !excluded(cached)) return Promise.resolve(cached);
+    if (cached && !excluded(cached) && !staleType(cached, n)) return Promise.resolve(cached);
     var poolP = S.pool ? Promise.resolve(S.pool) : getPool().then(function (p) { S.pool = p; return p; });
     return poolP.then(function (pool) {
       if (!pool) throw netErr("liste");

@@ -245,7 +245,8 @@ var TX = (function () {
   var LETTER = /[A-Za-zÀ-ÖØ-öø-ÿŒœÆæ0-9]/;
   var ELIDABLE = new Set(["l", "d", "n", "s", "c", "j", "m", "t", "qu", "jusqu", "lorsqu", "puisqu", "quoiqu", "presqu"]);
   var COMPOUND_APOS = new Set(["aujourd'hui", "prud'homme", "presqu'île", "cramois'île"]);
-  var ALIAS = {};
+  // Électrik (type) et électrique sont traités comme le même mot
+  var ALIAS = { "électrik": "électrique", "electrik": "électrique", "électrick": "électrique", "electrick": "électrique" };
 
   function low(s) { return String(s).toLowerCase().replace(/[’`´]/g, "'"); }
   function stripAcc(s) {
@@ -462,15 +463,40 @@ var TX = (function () {
     if (/eux$/.test(s)) s = s.slice(0, -1);
     return s;
   }
-  function canon(raw) {
-    var w = low(raw);
+  /* Accents facultatifs : les clés sont comparées sans accents, sauf pour quelques petits mots
+     où l'accent change le sens (a/à, ou/où, la/là, du/dû, des/dès, sur/sûr). */
+  var KEEP_ACC = new Set(["a", "à", "ou", "où", "la", "là", "du", "dû", "des", "dès", "sur", "sûr"]);
+  var FLAT = null; // formes sans accents -> forme accentuée connue (verbes et formes irrégulières)
+  function flatIndex() {
+    if (FLAT) return FLAT;
+    FLAT = Object.create(null);
+    [VERB, IRREG].forEach(function (tab) {
+      Object.keys(tab).forEach(function (k) {
+        var f = stripAcc(k);
+        if (f === k || Object.prototype.hasOwnProperty.call(tab, f)) return;
+        var prev = FLAT[f];
+        if (prev === undefined) FLAT[f] = k;
+        else if (prev && tab[prev] !== tab[k]) FLAT[f] = ""; // deux mots différents sans accents : ambigu
+      });
+    });
+    return FLAT;
+  }
+  function canonBase(w) {
     if (ALIAS[w]) w = ALIAS[w];
     if (w.endsWith("'")) return w;
     if (FUNC.has(w)) return w;
     if (isNum(w)) return w;
+    if (!Object.prototype.hasOwnProperty.call(IRREG, w) && !Object.prototype.hasOwnProperty.call(VERB, w) && stripAcc(w) === w) {
+      var acc = flatIndex()[w];
+      if (acc) w = acc;
+    }
     if (Object.prototype.hasOwnProperty.call(IRREG, w)) return naKey(IRREG[w]);
     if (Object.prototype.hasOwnProperty.call(VERB, w)) return "v:" + VERB[w];
     return naKey(w);
+  }
+  function canon(raw) {
+    var w = low(raw), k = canonBase(w);
+    return KEEP_ACC.has(w) || KEEP_ACC.has(k) ? k : stripAcc(k);
   }
 
   /* ---------- Racine (famille de mots) ---------- */
